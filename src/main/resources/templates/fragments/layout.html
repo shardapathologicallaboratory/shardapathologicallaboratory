@@ -112,15 +112,13 @@
                     <span>Dashboard</span>
                 </a>
                 
-                <a sec:authorize="hasAnyRole('ADMIN', 'RECEPTION', 'REPORTING')" href="#find-patients" 
-                   onclick="alert('Slice 2 will enable full multi-vector Find Patients search!')"
+                <a sec:authorize="hasAnyRole('ADMIN', 'RECEPTION', 'REPORTING')" href="/patients/search" 
                    class="px-3 py-1.5 rounded-lg text-slate-700 hover:bg-slate-100 flex items-center space-x-1.5">
                     <i data-lucide="search" class="w-4 h-4 text-slate-500"></i>
                     <span>Find Patients</span>
                 </a>
 
-                <a sec:authorize="hasAnyRole('ADMIN', 'RECEPTION')" href="#reception" 
-                   onclick="alert('Reception Desk module will be active in Slice 2!')"
+                <a sec:authorize="hasAnyRole('ADMIN', 'RECEPTION')" href="/reception" 
                    class="px-3 py-1.5 rounded-lg text-slate-700 hover:bg-slate-100 flex items-center space-x-1.5">
                     <i data-lucide="clipboard-list" class="w-4 h-4 text-slate-500"></i>
                     <span>Reception &amp; Billing</span>

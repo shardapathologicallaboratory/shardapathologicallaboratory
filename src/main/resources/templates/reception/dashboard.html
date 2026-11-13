@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Reception Desk - LCMS</title>
+</head>
+<body>
+    <div th:replace="~{fragments/layout :: html (pageTitle='Reception & Billing Desk', content=~{::content})}">
+        <div th:fragment="content" class="space-y-6">
+
+            <!-- Top Header & Action -->
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
+                <div>
+                    <h1 class="text-2xl font-bold text-slate-900 tracking-tight flex items-center">
+                        <i data-lucide="clipboard-list" class="w-6 h-6 mr-2 text-clinical-600"></i> Reception &amp; Billing Station
+                    </h1>
+                    <p class="text-xs text-slate-500 mt-0.5">Patient registration, multi-tier rate cards, and billing counter</p>
+                </div>
+
+                <div class="flex items-center space-x-3">
+                    <a href="/patients/search" class="px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition flex items-center space-x-1.5">
+                        <i data-lucide="search" class="w-4 h-4 text-slate-500"></i>
+                        <span>Find Patients</span>
+                    </a>
+                    <a href="/reception/new-registration" class="px-4 py-2.5 bg-clinical-600 hover:bg-clinical-700 text-white text-xs font-semibold rounded-xl shadow-md shadow-teal-500/20 transition flex items-center space-x-1.5">
+                        <i data-lucide="user-plus" class="w-4 h-4"></i>
+                        <span>+ Book New Patient / Order</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Today's Volume Counters by Channel -->
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                    <div class="flex justify-between items-center text-xs font-semibold uppercase text-slate-400">
+                        <span>Today's Total</span>
+                        <i data-lucide="layers" class="w-4 h-4 text-slate-400"></i>
+                    </div>
+                    <div class="text-3xl font-extrabold text-slate-900 mt-2" th:text="${totalToday}">0</div>
+                    <p class="text-[11px] text-slate-400 mt-1">Booked today</p>
+                </div>
+
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                    <div class="flex justify-between items-center text-xs font-semibold uppercase text-blue-600">
+                        <span>Walk-in (MAIN)</span>
+                        <i data-lucide="footprints" class="w-4 h-4 text-blue-500"></i>
+                    </div>
+                    <div class="text-3xl font-extrabold text-blue-600 mt-2" th:text="${walkInCount}">0</div>
+                    <p class="text-[11px] text-slate-400 mt-1">Retail Patient Rates</p>
+                </div>
+
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                    <div class="flex justify-between items-center text-xs font-semibold uppercase text-indigo-600">
+                        <span>B2B Partner Labs</span>
+                        <i data-lucide="building-2" class="w-4 h-4 text-indigo-500"></i>
+                    </div>
+                    <div class="text-3xl font-extrabold text-indigo-600 mt-2" th:text="${b2bCount}">0</div>
+                    <p class="text-[11px] text-slate-400 mt-1">Wholesale B2B Rates</p>
+                </div>
+
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                    <div class="flex justify-between items-center text-xs font-semibold uppercase text-amber-600">
+                        <span>Collection Centres</span>
+                        <i data-lucide="git-branch" class="w-4 h-4 text-amber-500"></i>
+                    </div>
+                    <div class="text-3xl font-extrabold text-amber-600 mt-2" th:text="${ccCount}">0</div>
+                    <p class="text-[11px] text-slate-400 mt-1">Franchisee Rates</p>
+                </div>
+            </div>
+
+            <!-- Orders Table for Today -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+                    <h2 class="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center">
+                        <i data-lucide="calendar" class="w-4 h-4 mr-2 text-clinical-600"></i> Today's Registered Queue
+                    </h2>
+                    <span class="text-xs text-slate-400 font-mono" th:text="'Total: ' + ${todayOrders.size()}">Total: 0</span>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider font-semibold">
+                                <th class="py-3 px-4">Token / Order ID</th>
+                                <th class="py-3 px-4">Patient Name &amp; UHID</th>
+                                <th class="py-3 px-4">Channel / Centre</th>
+                                <th class="py-3 px-4">Doctor</th>
+                                <th class="py-3 px-4">Tests Booked</th>
+                                <th class="py-3 px-4">Billing Status</th>
+                                <th class="py-3 px-4">Order Status</th>
+                                <th class="py-3 px-4 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 text-slate-700">
+                            <tr th:if="${todayOrders.empty}">
+                                <td colspan="8" class="py-8 text-center text-slate-400 italic">
+                                    No patients registered yet today. Click "+ Book New Patient" to register the first patient.
+                                </td>
+                            </tr>
+                            <tr th:each="ord : ${todayOrders}" class="hover:bg-slate-50/70 transition">
+                                <td class="py-3 px-4">
+                                    <div class="flex items-center space-x-1.5">
+                                        <span class="px-2 py-0.5 rounded-md font-bold text-xs bg-slate-900 text-white"
+                                              th:text="'#' + ${ord.dailyTokenNumber}">#1</span>
+                                        <span class="font-mono text-slate-500" th:text="${ord.orderNumber}">ORD-26-00001</span>
+                                    </div>
+                                    <div class="text-[10px] text-slate-400 mt-0.5 font-mono"
+                                         th:text="${#temporals.format(ord.orderTime, 'hh:mm a')}">10:30 AM</div>
+                                </td>
+                                <td class="py-3 px-4">
+                                    <a th:href="@{/patients/{id}(id=${ord.patient.id})}"
+                                       class="font-semibold text-clinical-700 hover:underline block"
+                                       th:text="${ord.patient.fullName}">Patient Name</a>
+                                    <span class="text-[11px] text-slate-500" th:text="${ord.patient.formattedAgeAndSex}">45 Yrs / Male</span>
+                                    <div class="text-[10px] font-mono text-slate-400" th:text="${ord.patient.uhid}">PAT-26-00001</div>
+                                </td>
+                                <td class="py-3 px-4">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold"
+                                          th:classappend="${ord.source.name() == 'WALK_IN' ? 'bg-blue-50 text-blue-700 border border-blue-200' : (ord.source.name() == 'B2B' ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' : 'bg-amber-50 text-amber-700 border border-amber-200')}"
+                                          th:text="${ord.centreCode}">
+                                        MAIN
+                                    </span>
+                                </td>
+                                <td class="py-3 px-4">
+                                    <span class="font-medium text-slate-800" th:text="${ord.doctor.name}">Dr. Name</span>
+                                </td>
+                                <td class="py-3 px-4 max-w-xs">
+                                    <div class="flex flex-wrap gap-1">
+                                        <span th:each="item : ${ord.items}"
+                                              class="px-1.5 py-0.5 rounded text-[10px] bg-slate-100 text-slate-700 font-medium border border-slate-200">
+                                            <span th:text="${item.vialType.emoji}">🟣</span>
+                                            <span th:text="${item.testName}">Test</span>
+                                        </span>
+                                    </div>
+                                </td>
+                                <td class="py-3 px-4">
+                                    <div class="font-bold text-slate-900" th:text="'₹ ' + ${ord.netAmount}">₹ 0.00</div>
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold border"
+                                          th:classappend="${ord.paymentStatus.badgeClass}"
+                                          th:text="${ord.paymentStatus.displayName}">
+                                        Paid
+                                    </span>
+                                    <div th:if="${ord.dueAmount > 0}" class="text-[10px] text-rose-600 font-semibold"
+                                         th:text="'Due: ₹ ' + ${ord.dueAmount}">Due: ₹ 0</div>
+                                </td>
+                                <td class="py-3 px-4">
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold border"
+                                          th:classappend="${ord.status.badgeClass}"
+                                          th:text="${ord.status.displayName}">
+                                        Status
+                                    </span>
+                                </td>
+                                <td class="py-3 px-4 text-right space-x-1 whitespace-nowrap">
+                                    <a th:href="@{/patients/{id}(id=${ord.patient.id})}"
+                                       class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[11px] font-medium transition inline-block">
+                                        Profile
+                                    </a>
+                                    <!-- Mark Dispatched Action (Req #17) -->
+                                    <form th:if="${ord.status.name() != 'DISPATCHED' and ord.status.name() != 'CANCELLED'}"
+                                          th:action="@{/reception/orders/{id}/dispatch(id=${ord.id})}" method="post" class="inline">
+                                        <button type="submit"
+                                                onclick="return confirm('Confirm report dispatch/handover to patient?')"
+                                                class="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg text-[11px] font-medium transition">
+                                            Dispatch
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</body>
+</html>

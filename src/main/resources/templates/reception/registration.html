@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Patient Registration &amp; Order Booking - LCMS</title>
+</head>
+<body>
+    <div th:replace="~{fragments/layout :: html (pageTitle='New Order Booking', content=~{::content})}">
+        <div th:fragment="content" class="space-y-6">
+
+            <!-- Title & Back -->
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <a href="/reception" class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 transition">
+                        <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                    </a>
+                    <div>
+                        <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Patient Registration &amp; Booking</h1>
+                        <p class="text-xs text-slate-500">Book diagnostic tests, apply channel rate cards, and record payment</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Existing Patient Lookup Bar -->
+            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                <div class="flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <div class="w-full sm:w-2/3 relative">
+                        <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3.5 top-3"></i>
+                        <input type="text" id="patientLookupInput"
+                               placeholder="Type Phone Number, Lifetime UHID, or Patient Name to search existing records..."
+                               class="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs outline-none focus:ring-2 focus:ring-clinical-600">
+                    </div>
+                    <div class="w-full sm:w-1/3 flex justify-end space-x-2">
+                        <button type="button" onclick="searchPatient()" class="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold rounded-xl transition">
+                            Lookup Patient
+                        </button>
+                        <a href="/reception/new-registration" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition">
+                            Clear / Fresh
+                        </a>
+                    </div>
+                </div>
+                <div id="lookupResults" class="mt-3 hidden border-t border-slate-100 pt-3 text-xs space-y-1"></div>
+            </div>
+
+            <!-- Main Booking Form -->
+            <form th:action="@{/reception/orders/create}" method="post" id="orderBookingForm" class="space-y-6">
+
+                <!-- 1. Patient Demographics Card -->
+                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                    <div class="flex justify-between items-center mb-4 pb-2 border-b border-slate-100">
+                        <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center">
+                            <i data-lucide="user" class="w-4 h-4 mr-2 text-clinical-600"></i>
+                            <span th:text="${existingPatient != null ? 'Patient Profile (Locked Lifetime Record 🔒)' : '1. Patient Demographics'}">
+                                Patient Details
+                            </span>
+                        </h2>
+                        <span th:if="${existingPatient != null}" class="text-xs font-mono font-bold text-clinical-700 bg-clinical-50 px-2.5 py-1 rounded-lg border border-clinical-200"
+                              th:text="${existingPatient.uhid}">
+                            PAT-26-00001
+                        </span>
+                    </div>
+
+                    <!-- Hidden patientId if existing patient -->
+                    <input type="hidden" name="patientId" th:if="${existingPatient != null}" th:value="${existingPatient.id}">
+
+                    <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 text-xs">
+                        <!-- Salutation & Full Name -->
+                        <div class="sm:col-span-2">
+                            <label class="block font-semibold text-slate-700 mb-1">Patient Full Name *</label>
+                            <div class="flex space-x-2">
+                                <select name="salutation" th:disabled="${existingPatient != null}"
+                                        class="w-24 px-2.5 py-2 bg-slate-50 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-clinical-600">
+                                    <option value="Mr." th:selected="${existingPatient != null and existingPatient.salutation == 'Mr.'}">Mr.</option>
+                                    <option value="Mrs." th:selected="${existingPatient != null and existingPatient.salutation == 'Mrs.'}">Mrs.</option>
+                                    <option value="Miss" th:selected="${existingPatient != null and existingPatient.salutation == 'Miss'}">Miss</option>
+                                    <option value="Master" th:selected="${existingPatient != null and existingPatient.salutation == 'Master'}">Master</option>
+                                    <option value="Baby" th:selected="${existingPatient != null and existingPatient.salutation == 'Baby'}">Baby</option>
+                                    <option value="Dr." th:selected="${existingPatient != null and existingPatient.salutation == 'Dr.'}">Dr.</option>
+                                </select>
+                                <input type="text" name="fullName" required
+                                       th:value="${existingPatient != null ? existingPatient.fullName : ''}"
+                                       th:readonly="${existingPatient != null}"
+                                       placeholder="e.g. Ramesh Kumar"
+                                       class="flex-1 px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-clinical-600">
+                            </div>
+                        </div>
+
+                        <!-- Age Years & Months -->
+                        <div>
+                            <label class="block font-semibold text-slate-700 mb-1">Age (Years &amp; Months) *</label>
+                            <div class="flex space-x-2">
+                                <input type="number" name="ageYears" min="0" max="130" placeholder="Years" required
+                                       th:value="${existingPatient != null ? existingPatient.ageYears : ''}"
+                                       th:readonly="${existingPatient != null}"
+                                       class="w-1/2 px-2.5 py-2 bg-slate-50 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-clinical-600">
+                                <input type="number" name="ageMonths" min="0" max="11" placeholder="Mths"
+                                       th:value="${existingPatient != null ? existingPatient.ageMonths : '0'}"
+                                       th:readonly="${existingPatient != null}"
+                                       class="w-1/2 px-2.5 py-2 bg-slate-50 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-clinical-600">
+                            </div>
+                        </div>
+
+                        <!-- Gender -->
+                        <div>
+                            <label class="block font-semibold text-slate-700 mb-1">Gender *</label>
+                            <select name="gender" th:disabled="${existingPatient != null}" required
+                                    class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-clinical-600">
+                                <option th:each="g : ${genders}" th:value="${g}" th:text="${g.displayName}"
+                                        th:selected="${existingPatient != null and existingPatient.gender == g}">Male</option>
+                            </select>
+                        </div>
+
+                        <!-- Phone Number -->
+                        <div>
+                            <label class="block font-semibold text-slate-700 mb-1">Mobile Number *</label>
+                            <input type="text" name="phone" required
+                                   th:value="${existingPatient != null ? existingPatient.phone : ''}"
+                                   th:readonly="${existingPatient != null}"
+                                   placeholder="10-digit mobile"
+                                   class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-clinical-600">
+                        </div>
+
+                        <!-- Blood Group -->
+                        <div>
+                            <label class="block font-semibold text-slate-700 mb-1">Blood Group</label>
+                            <select name="bloodGroup" th:disabled="${existingPatient != null}"
+                                    class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-clinical-600">
+                                <option value="">Unknown / Not Tested</option>
+                                <option value="A+" th:selected="${existingPatient != null and existingPatient.bloodGroup == 'A+'}">A+</option>
+                                <option value="A-" th:selected="${existingPatient != null and existingPatient.bloodGroup == 'A-'}">A-</option>
+                                <option value="B+" th:selected="${existingPatient != null and existingPatient.bloodGroup == 'B+'}">B+</option>
+                                <option value="B-" th:selected="${existingPatient != null and existingPatient.bloodGroup == 'B-'}">B-</option>
+                                <option value="AB+" th:selected="${existingPatient != null and existingPatient.bloodGroup == 'AB+'}">AB+</option>
+                                <option value="AB-" th:selected="${existingPatient != null and existingPatient.bloodGroup == 'AB-'}">AB-</option>
+                                <option value="O+" th:selected="${existingPatient != null and existingPatient.bloodGroup == 'O+'}">O+</option>
+                                <option value="O-" th:selected="${existingPatient != null and existingPatient.bloodGroup == 'O-'}">O-</option>
+                            </select>
+                        </div>
+
+                        <!-- Address -->
+                        <div class="sm:col-span-2">
+                            <label class="block font-semibold text-slate-700 mb-1">Residential Address / City</label>
+                            <input type="text" name="address"
+                                   th:value="${existingPatient != null ? existingPatient.address : ''}"
+                                   th:readonly="${existingPatient != null}"
+                                   placeholder="Street, Colony, Town"
+                                   class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-clinical-600">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. Visit Origin Channel & Referring Doctor Card -->
+                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                    <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider mb-4 pb-2 border-b border-slate-100 flex items-center">
+                        <i data-lucide="git-branch" class="w-4 h-4 mr-2 text-clinical-600"></i> 2. Visit Channel &amp; Doctor
+                    </h2>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+                        <!-- Source Channel (Rate Card driver) -->
+                        <div>
+                            <label class="block font-semibold text-slate-700 mb-1">Source Channel (Rate Card) *</label>
+                            <select name="source" id="sourceSelect" onchange="onSourceChange()" required
+                                    class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-clinical-600">
+                                <option value="WALK_IN">In-Person Walk-in (Standard Retail Rate)</option>
+                                <option value="B2B">B2B Lab-to-Lab Outsource (Wholesale Rate)</option>
+                                <option value="COLLECTION_CENTRE">Collection Centre / Branch (Franchisee Rate)</option>
+                            </select>
+                        </div>
+
+                        <!-- Centre / Partner Code -->
+                        <div>
+                            <label class="block font-semibold text-slate-700 mb-1">Centre / Partner Code *</label>
+                            <input type="text" name="centreCode" id="centreCodeInput" value="MAIN" required
+                                   class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-clinical-600"
+                                   placeholder="e.g. MAIN, DLT-22, B2B-METRO">
+                        </div>
+
+                        <!-- Referring Doctor -->
+                        <div>
+                            <div class="flex justify-between items-center mb-1">
+                                <label class="font-semibold text-slate-700">Referring Doctor *</label>
+                                <button type="button" onclick="document.getElementById('quickAddDoctorModal').classList.remove('hidden')"
+                                        class="text-[11px] text-clinical-600 hover:text-clinical-700 font-bold">
+                                    + Add Doctor
+                                </button>
+                            </div>
+                            <select name="doctorId" required
+                                    class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-clinical-600">
+                                <option th:each="doc : ${doctors}" th:value="${doc.id}" th:text="${doc.name + ' (' + doc.qualification + ')'}">
+                                    Dr. Name
+                                </option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. Test Selection & Rate Card Catalogue Grid -->
+                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4 pb-2 border-b border-slate-100">
+                        <div>
+                            <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center">
+                                <i data-lucide="test-tubes" class="w-4 h-4 mr-2 text-clinical-600"></i> 3. Test Catalogue &amp; Packages
+                            </h2>
+                            <p class="text-[11px] text-slate-400">Prices automatically reflect the selected channel rate card</p>
+                        </div>
+
+                        <div class="flex items-center space-x-2">
+                            <input type="text" id="testFilter" onkeyup="filterTests()" placeholder="Quick filter tests..."
+                                   class="px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-xl text-xs outline-none focus:ring-2 focus:ring-clinical-600">
+                            <!-- Quick Add Unlisted Custom Test (Req from Receptionist) -->
+                            <button type="button" onclick="document.getElementById('customTestModal').classList.remove('hidden')"
+                                    class="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white font-semibold rounded-xl text-xs transition shadow-sm">
+                                + Add Unlisted Test
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Custom Test Badge if added -->
+                    <div id="customTestBadgeContainer" class="hidden mb-4 p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs flex justify-between items-center">
+                        <div>
+                            <span class="font-bold text-amber-900" id="badgeCustomTestName">Custom Test</span>
+                            <span class="text-amber-700 ml-2" id="badgeCustomTestMeta">Dept: Bio</span>
+                            <span class="font-mono font-bold text-amber-900 ml-2" id="badgeCustomTestPrice">₹ 0</span>
+                        </div>
+                        <button type="button" onclick="removeCustomTest()" class="text-rose-600 hover:text-rose-800 font-bold">
+                            Remove
+                        </button>
+                    </div>
+
+                    <!-- Hidden inputs for custom test -->
+                    <input type="hidden" name="customTestName" id="customTestName">
+                    <input type="hidden" name="customDepartment" id="customDepartment">
+                    <input type="hidden" name="customVialType" id="customVialType">
+                    <input type="hidden" name="customPrice" id="customPrice" value="0">
+
+                    <!-- Test Checkboxes Grid -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-h-96 overflow-y-auto p-1" id="testGrid">
+                        <div th:each="t : ${tests}" 
+                             class="test-card p-3 rounded-xl border border-slate-200 hover:border-teal-400 hover:bg-teal-50/20 transition flex items-start space-x-3 cursor-pointer"
+                             th:attr="data-name=${t.name.toLowerCase() + ' ' + t.code.toLowerCase()},
+                                      data-retail=${t.retailPrice},
+                                      data-b2b=${t.b2bPrice},
+                                      data-cc=${t.collectionCentrePrice}">
+                            <input type="checkbox" name="selectedTestIds" th:value="${t.id}"
+                                   onchange="calculateTotal()"
+                                   class="mt-1 rounded border-slate-300 text-clinical-600 focus:ring-clinical-500 cursor-pointer">
+                            <div class="flex-1">
+                                <div class="flex justify-between items-start">
+                                    <span class="font-bold text-slate-800 text-xs" th:text="${t.name}">Test Name</span>
+                                    <span class="font-mono font-bold text-slate-900 text-xs test-price-display" th:text="'₹ ' + ${t.retailPrice}">₹ 0</span>
+                                </div>
+                                <div class="flex items-center space-x-2 mt-1">
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-600 border border-slate-200"
+                                          th:text="${t.department.displayName}">Dept</span>
+                                    <span class="text-[10px] text-slate-500 flex items-center space-x-1">
+                                        <span th:text="${t.defaultVial.emoji}">🟣</span>
+                                        <span th:text="${t.defaultVial.displayName}">Vial</span>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. Billing, Discounts & Payment Collection Card -->
+                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                    <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider mb-4 pb-2 border-b border-slate-100 flex items-center">
+                        <i data-lucide="receipt" class="w-4 h-4 mr-2 text-clinical-600"></i> 4. Billing &amp; Payment Collection
+                    </h2>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 text-xs">
+                        <div>
+                            <label class="block font-semibold text-slate-700 mb-1">Subtotal Amount</label>
+                            <input type="text" id="subtotalDisplay" readonly value="₹ 0.00"
+                                   class="w-full px-3 py-2 bg-slate-100 font-mono font-bold text-slate-900 rounded-xl border border-slate-300">
+                        </div>
+
+                        <div>
+                            <label class="block font-semibold text-slate-700 mb-1">Discount Amount (₹)</label>
+                            <input type="number" name="discountAmount" id="discountInput" min="0" value="0" step="1"
+                                   oninput="calculateTotal()"
+                                   class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-clinical-600 font-mono">
+                        </div>
+
+                        <div class="sm:col-span-2">
+                            <label class="block font-semibold text-slate-700 mb-1">Discount Reason (Required if discount > 0)</label>
+                            <input type="text" name="discountReason" placeholder="e.g. Senior citizen, Director approved"
+                                   class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-clinical-600">
+                        </div>
+
+                        <div>
+                            <label class="block font-semibold text-slate-700 mb-1">Net Amount Payable</label>
+                            <input type="text" id="netAmountDisplay" readonly value="₹ 0.00"
+                                   class="w-full px-3 py-2 bg-teal-50 font-mono font-extrabold text-clinical-800 text-sm rounded-xl border border-teal-200">
+                        </div>
+
+                        <div>
+                            <label class="block font-semibold text-slate-700 mb-1">Amount Paid Now *</label>
+                            <input type="number" name="paidAmount" id="paidAmountInput" min="0" value="0" step="1" required
+                                   oninput="calculateTotal()"
+                                   class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-clinical-600 font-mono font-bold text-slate-900">
+                        </div>
+
+                        <div>
+                            <label class="block font-semibold text-slate-700 mb-1">Balance Due</label>
+                            <input type="text" id="dueDisplay" readonly value="₹ 0.00"
+                                   class="w-full px-3 py-2 bg-slate-100 font-mono font-bold text-rose-600 rounded-xl border border-slate-300">
+                        </div>
+
+                        <div>
+                            <label class="block font-semibold text-slate-700 mb-1">Payment Mode *</label>
+                            <select name="paymentMode" required
+                                    class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-clinical-600">
+                                <option th:each="pm : ${paymentModes}" th:value="${pm}" th:text="${pm.displayName}">Cash</option>
+                            </select>
+                        </div>
+
+                        <div class="sm:col-span-2">
+                            <label class="block font-semibold text-slate-700 mb-1">Payment Reference / UTR (For UPI / Card)</label>
+                            <input type="text" name="paymentReference" placeholder="e.g. UPI Ref # or Card Slip Auth #"
+                                   class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-clinical-600">
+                        </div>
+
+                        <div class="sm:col-span-2">
+                            <label class="block font-semibold text-slate-700 mb-1">Clinical Notes / Symptoms</label>
+                            <input type="text" name="clinicalNotes" placeholder="e.g. High fever, Fasting 10 hrs"
+                                   class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-clinical-600">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit Button Bar -->
+                <div class="flex justify-end space-x-3">
+                    <a href="/reception" class="px-5 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold rounded-xl transition">
+                        Cancel
+                    </a>
+                    <button type="submit"
+                            class="px-8 py-3 bg-clinical-600 hover:bg-clinical-700 text-white text-sm font-bold rounded-xl shadow-lg shadow-teal-500/25 transition flex items-center space-x-2">
+                        <i data-lucide="check-circle-2" class="w-5 h-5"></i>
+                        <span>Confirm &amp; Generate Barcodes</span>
+                    </button>
+                </div>
+            </form>
+
+            <!-- Quick Add Custom Test Modal (Req #15 / Ad-hoc Test) -->
+            <div id="customTestModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+                <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 text-xs">
+                    <h3 class="text-base font-bold text-slate-900 mb-1">Quick Add Unlisted Test</h3>
+                    <p class="text-slate-500 mb-4">Book a rare or custom test on-the-fly without altering master catalogue</p>
+
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block font-semibold text-slate-700 mb-1">Test Name *</label>
+                            <input type="text" id="modalCustomName" placeholder="e.g. Serum Zinc"
+                                   class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-clinical-600">
+                        </div>
+
+                        <div>
+                            <label class="block font-semibold text-slate-700 mb-1">Department *</label>
+                            <select id="modalCustomDept"
+                                    class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-clinical-600">
+                                <option th:each="d : ${departments}" th:value="${d}" th:text="${d.displayName}">Bio</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block font-semibold text-slate-700 mb-1">Sample Container / Vial *</label>
+                            <select id="modalCustomVial"
+                                    class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-clinical-600">
+                                <option th:each="v : ${vialTypes}" th:value="${v}" th:text="${v.emoji + ' ' + v.displayName}">EDTA</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block font-semibold text-slate-700 mb-1">Custom Price (₹) *</label>
+                            <input type="number" id="modalCustomPrice" min="0" placeholder="e.g. 850"
+                                   class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-clinical-600">
+                        </div>
+
+                        <div class="pt-3 flex justify-end space-x-2">
+                            <button type="button" onclick="document.getElementById('customTestModal').classList.add('hidden')"
+                                    class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl">Cancel</button>
+                            <button type="button" onclick="addCustomTest()"
+                                    class="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl shadow-sm">
+                                Add to Order
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Add Doctor Modal -->
+            <div id="quickAddDoctorModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+                <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-200 text-xs">
+                    <h3 class="text-base font-bold text-slate-900 mb-1">Add Referring Doctor</h3>
+                    <p class="text-slate-500 mb-4">Quickly register a new consultant physician or clinic</p>
+
+                    <form th:action="@{/reception/doctors/quick-add}" method="post" class="space-y-3">
+                        <div>
+                            <label class="block font-semibold text-slate-700 mb-1">Doctor Name *</label>
+                            <input type="text" name="name" required placeholder="e.g. Dr. Rajesh Mishra"
+                                   class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-clinical-600">
+                        </div>
+                        <div>
+                            <label class="block font-semibold text-slate-700 mb-1">Qualification</label>
+                            <input type="text" name="qualification" placeholder="e.g. MBBS, MD (Med)"
+                                   class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-clinical-600">
+                        </div>
+                        <div>
+                            <label class="block font-semibold text-slate-700 mb-1">Clinic / Hospital</label>
+                            <input type="text" name="clinicOrHospital" placeholder="e.g. Apollo Clinic"
+                                   class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-clinical-600">
+                        </div>
+                        <div>
+                            <label class="block font-semibold text-slate-700 mb-1">Phone</label>
+                            <input type="text" name="phone" placeholder="9876543210"
+                                   class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-clinical-600">
+                        </div>
+                        <div class="pt-3 flex justify-end space-x-2">
+                            <button type="button" onclick="document.getElementById('quickAddDoctorModal').classList.add('hidden')"
+                                    class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl">Cancel</button>
+                            <button type="submit" class="px-4 py-2 bg-clinical-600 hover:bg-clinical-700 text-white font-bold rounded-xl shadow-sm">
+                                Save Doctor
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Interactive Script for Rate Cards, Dynamic Math & Custom Tests -->
+    <script>
+        function onSourceChange() {
+            const src = document.getElementById('sourceSelect').value;
+            const centreInput = document.getElementById('centreCodeInput');
+            if (src === 'WALK_IN') {
+                centreInput.value = 'MAIN';
+            } else if (src === 'B2B' && centreInput.value === 'MAIN') {
+                centreInput.value = 'B2B-01';
+            } else if (src === 'COLLECTION_CENTRE' && centreInput.value === 'MAIN') {
+                centreInput.value = 'CC-01';
+            }
+
+            // Update visible price labels based on Rate Card
+            document.querySelectorAll('.test-card').forEach(card => {
+                let price = card.getAttribute('data-retail');
+                if (src === 'B2B') price = card.getAttribute('data-b2b');
+                else if (src === 'COLLECTION_CENTRE') price = card.getAttribute('data-cc');
+                card.querySelector('.test-price-display').innerText = '₹ ' + parseFloat(price).toFixed(2);
+            });
+            calculateTotal();
+        }
+
+        function calculateTotal() {
+            const src = document.getElementById('sourceSelect').value;
+            let subtotal = 0;
+
+            document.querySelectorAll('#testGrid input[type="checkbox"]:checked').forEach(cb => {
+                const card = cb.closest('.test-card');
+                let price = parseFloat(card.getAttribute('data-retail'));
+                if (src === 'B2B') price = parseFloat(card.getAttribute('data-b2b'));
+                else if (src === 'COLLECTION_CENTRE') price = parseFloat(card.getAttribute('data-cc'));
+                subtotal += price;
+            });
+
+            // Add custom test price if present
+            const customPrice = parseFloat(document.getElementById('customPrice').value) || 0;
+            subtotal += customPrice;
+
+            const discount = parseFloat(document.getElementById('discountInput').value) || 0;
+            const net = Math.max(0, subtotal - discount);
+            
+            // Default amount paid to net if zero
+            const paidInput = document.getElementById('paidAmountInput');
+            if (parseFloat(paidInput.value) === 0 || paidInput.dataset.touched !== 'true') {
+                paidInput.value = net.toFixed(2);
+            }
+            const paid = parseFloat(paidInput.value) || 0;
+            const due = Math.max(0, net - paid);
+
+            document.getElementById('subtotalDisplay').value = '₹ ' + subtotal.toFixed(2);
+            document.getElementById('netAmountDisplay').value = '₹ ' + net.toFixed(2);
+            document.getElementById('dueDisplay').value = '₹ ' + due.toFixed(2);
+        }
+
+        document.getElementById('paidAmountInput').addEventListener('input', function() {
+            this.dataset.touched = 'true';
+            calculateTotal();
+        });
+
+        function filterTests() {
+            const query = document.getElementById('testFilter').value.toLowerCase();
+            document.querySelectorAll('.test-card').forEach(card => {
+                const name = card.getAttribute('data-name');
+                card.style.display = name.includes(query) ? '' : 'none';
+            });
+        }
+
+        function addCustomTest() {
+            const name = document.getElementById('modalCustomName').value;
+            const dept = document.getElementById('modalCustomDept').value;
+            const vial = document.getElementById('modalCustomVial').value;
+            const price = parseFloat(document.getElementById('modalCustomPrice').value) || 0;
+
+            if (!name.trim()) {
+                alert('Please enter a test name');
+                return;
+            }
+
+            document.getElementById('customTestName').value = name;
+            document.getElementById('customDepartment').value = dept;
+            document.getElementById('customVialType').value = vial;
+            document.getElementById('customPrice').value = price;
+
+            document.getElementById('badgeCustomTestName').innerText = name;
+            document.getElementById('badgeCustomTestMeta').innerText = 'Dept: ' + dept + ' | ' + vial;
+            document.getElementById('badgeCustomTestPrice').innerText = '₹ ' + price.toFixed(2);
+            document.getElementById('customTestBadgeContainer').classList.remove('hidden');
+
+            document.getElementById('customTestModal').classList.add('hidden');
+            calculateTotal();
+        }
+
+        function removeCustomTest() {
+            document.getElementById('customTestName').value = '';
+            document.getElementById('customPrice').value = 0;
+            document.getElementById('customTestBadgeContainer').classList.add('hidden');
+            calculateTotal();
+        }
+
+        function searchPatient() {
+            const q = document.getElementById('patientLookupInput').value;
+            if (!q.trim()) return;
+            window.location.href = '/patients/search?query=' + encodeURIComponent(q);
+        }
+    </script>
+</body>
+</html>

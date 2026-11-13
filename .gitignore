@@ -32,3 +32,8 @@ target/
 ### OS ###
 Thumbs.db
 .DS_Store
+
+# Local Database
+data/
+*.mv.db
+*.trace.db

@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Find Patients &amp; Records - LCMS</title>
+</head>
+<body>
+    <div th:replace="~{fragments/layout :: html (pageTitle='Find Patients', content=~{::content})}">
+        <div th:fragment="content" class="space-y-6">
+
+            <!-- Title & Create Order Shortcut -->
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-3 sm:space-y-0">
+                <div>
+                    <h1 class="text-2xl font-bold text-slate-900 tracking-tight flex items-center">
+                        <i data-lucide="search" class="w-6 h-6 mr-2 text-clinical-600"></i> Universal Patient &amp; Record Search
+                    </h1>
+                    <p class="text-xs text-slate-500 mt-0.5">Filter across UHID, phone, date ranges, partner centres, doctors, and tests (Req #5)</p>
+                </div>
+
+                <a href="/reception/new-registration"
+                   class="px-4 py-2.5 bg-clinical-600 hover:bg-clinical-700 text-white text-xs font-semibold rounded-xl shadow-md shadow-teal-500/20 transition flex items-center space-x-1.5">
+                    <i data-lucide="user-plus" class="w-4 h-4"></i>
+                    <span>+ Book New Patient</span>
+                </a>
+            </div>
+
+            <!-- Multi-Vector Filter Card -->
+            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                <form th:action="@{/patients/search}" method="get" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 text-xs">
+                    <!-- Text Search -->
+                    <div class="lg:col-span-2">
+                        <label class="block font-semibold text-slate-700 mb-1">Search Keywords</label>
+                        <div class="relative">
+                            <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5"></i>
+                            <input type="text" name="query" th:value="${query}"
+                                   placeholder="Patient Name, Phone, UHID, or Order #"
+                                   class="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-clinical-600">
+                        </div>
+                    </div>
+
+                    <!-- Date Range Start -->
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">From Date</label>
+                        <input type="date" name="startDate" th:value="${startDate}"
+                               class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-clinical-600">
+                    </div>
+
+                    <!-- Date Range End -->
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">To Date</label>
+                        <input type="date" name="endDate" th:value="${endDate}"
+                               class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-clinical-600">
+                    </div>
+
+                    <!-- Source Channel -->
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Channel / Centre</label>
+                        <select name="source"
+                                class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-clinical-600">
+                            <option value="">All Channels</option>
+                            <option th:each="s : ${sources}" th:value="${s}" th:text="${s.displayName}"
+                                    th:selected="${selectedSource == s}">Walk-in</option>
+                        </select>
+                    </div>
+
+                    <!-- Order Status -->
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Report Status</label>
+                        <select name="status"
+                                class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-clinical-600">
+                            <option value="">All Statuses</option>
+                            <option th:each="st : ${statuses}" th:value="${st}" th:text="${st.displayName}"
+                                    th:selected="${selectedStatus == st}">Status</option>
+                        </select>
+                    </div>
+
+                    <!-- Doctor Filter & Search Buttons -->
+                    <div class="lg:col-span-4">
+                        <label class="block font-semibold text-slate-700 mb-1">Referring Doctor</label>
+                        <select name="doctorId"
+                                class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-clinical-600">
+                            <option value="">All Referring Doctors</option>
+                            <option th:each="doc : ${doctors}" th:value="${doc.id}" th:text="${doc.name}"
+                                    th:selected="${selectedDoctorId == doc.id}">Doctor</option>
+                        </select>
+                    </div>
+
+                    <div class="lg:col-span-2 flex items-end space-x-2">
+                        <a href="/patients/search" class="w-1/3 py-2 text-center bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl transition">
+                            Reset
+                        </a>
+                        <button type="submit" class="w-2/3 py-2 bg-slate-900 hover:bg-black text-white font-semibold rounded-xl transition flex items-center justify-center space-x-1">
+                            <i data-lucide="filter" class="w-3.5 h-3.5"></i>
+                            <span>Filter Records</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Results Table -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+                    <h2 class="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center">
+                        <i data-lucide="table" class="w-4 h-4 mr-2 text-clinical-600"></i> Matching Records
+                    </h2>
+                    <span class="text-xs text-slate-400 font-mono" th:text="'Found: ' + ${orders.size()}">Found: 0</span>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider font-semibold">
+                                <th class="py-3 px-4">Visit Date &amp; Token</th>
+                                <th class="py-3 px-4">Patient Profile</th>
+                                <th class="py-3 px-4">Contact</th>
+                                <th class="py-3 px-4">Channel / Code</th>
+                                <th class="py-3 px-4">Referring Doctor</th>
+                                <th class="py-3 px-4">Tests Ordered</th>
+                                <th class="py-3 px-4">Billing</th>
+                                <th class="py-3 px-4">Status</th>
+                                <th class="py-3 px-4 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 text-slate-700">
+                            <tr th:if="${orders.empty}">
+                                <td colspan="9" class="py-8 text-center text-slate-400 italic">
+                                    No records found matching the specified search criteria.
+                                </td>
+                            </tr>
+                            <tr th:each="o : ${orders}" class="hover:bg-slate-50/70 transition">
+                                <td class="py-3 px-4">
+                                    <div class="font-bold text-slate-900 flex items-center space-x-1">
+                                        <span class="px-1.5 py-0.5 rounded bg-slate-900 text-white text-[10px]" th:text="'#' + ${o.dailyTokenNumber}">#1</span>
+                                        <span class="font-mono text-xs" th:text="${o.orderNumber}">ORD-26-00001</span>
+                                    </div>
+                                    <div class="text-[11px] text-slate-500 mt-0.5" th:text="${#temporals.format(o.orderDate, 'dd-MMM-yyyy')}">12-Nov-2026</div>
+                                </td>
+                                <td class="py-3 px-4">
+                                    <a th:href="@{/patients/{id}(id=${o.patient.id})}"
+                                       class="font-bold text-clinical-700 hover:underline block"
+                                       th:text="${o.patient.fullName}">Patient Name</a>
+                                    <span class="text-[11px] text-slate-500" th:text="${o.patient.formattedAgeAndSex}">45 Yrs / Male</span>
+                                    <div class="text-[10px] font-mono text-slate-400" th:text="${o.patient.uhid}">PAT-26-00001</div>
+                                </td>
+                                <td class="py-3 px-4 font-mono text-slate-600" th:text="${o.patient.phone}">
+                                    9876543210
+                                </td>
+                                <td class="py-3 px-4">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold"
+                                          th:classappend="${o.source.name() == 'WALK_IN' ? 'bg-blue-50 text-blue-700 border border-blue-200' : (o.source.name() == 'B2B' ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' : 'bg-amber-50 text-amber-700 border border-amber-200')}"
+                                          th:text="${o.centreCode}">
+                                        MAIN
+                                    </span>
+                                </td>
+                                <td class="py-3 px-4">
+                                    <span class="font-medium text-slate-800" th:text="${o.doctor.name}">Doctor</span>
+                                </td>
+                                <td class="py-3 px-4 max-w-xs">
+                                    <div class="flex flex-wrap gap-1">
+                                        <span th:each="it : ${o.items}"
+                                              class="px-1.5 py-0.5 rounded text-[10px] bg-slate-100 text-slate-700 font-medium border border-slate-200">
+                                            <span th:text="${it.testName}">Test</span>
+                                        </span>
+                                    </div>
+                                </td>
+                                <td class="py-3 px-4">
+                                    <div class="font-bold text-slate-900" th:text="'₹ ' + ${o.netAmount}">₹ 0.00</div>
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold border"
+                                          th:classappend="${o.paymentStatus.badgeClass}"
+                                          th:text="${o.paymentStatus.displayName}">Paid</span>
+                                </td>
+                                <td class="py-3 px-4">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border"
+                                          th:classappend="${o.status.badgeClass}"
+                                          th:text="${o.status.displayName}">Status</span>
+                                </td>
+                                <td class="py-3 px-4 text-right space-x-1 whitespace-nowrap">
+                                    <a th:href="@{/patients/{id}(id=${o.patient.id})}"
+                                       class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[11px] font-medium transition inline-block">
+                                        History
+                                    </a>
+                                    <a th:href="@{/reception/new-registration(existingPatientId=${o.patient.id})}"
+                                       class="px-2.5 py-1 bg-teal-50 hover:bg-teal-100 text-teal-700 rounded-lg text-[11px] font-medium transition inline-block">
+                                        Re-Book
+                                    </a>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</body>
+</html>

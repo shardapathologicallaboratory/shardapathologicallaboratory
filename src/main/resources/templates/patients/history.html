@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Patient Medical History - LCMS</title>
+</head>
+<body>
+    <div th:replace="~{fragments/layout :: html (pageTitle='Patient Profile & History', content=~{::content})}">
+        <div th:fragment="content" class="space-y-6">
+
+            <!-- Title & Back -->
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-3 sm:space-y-0">
+                <div class="flex items-center space-x-3">
+                    <a href="/patients/search" class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 transition">
+                        <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                    </a>
+                    <div>
+                        <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Lifetime Patient Profile</h1>
+                        <p class="text-xs text-slate-500">Cumulative visit history, past reports, and demographic records</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center space-x-2">
+                    <button type="button" onclick="document.getElementById('editDemographicsModal').classList.remove('hidden')"
+                            class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition flex items-center space-x-1.5">
+                        <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                        <span>Edit Patient Info (Unlock)</span>
+                    </button>
+                    <a th:href="@{/reception/new-registration(existingPatientId=${patient.id})}"
+                       class="px-4 py-2 bg-clinical-600 hover:bg-clinical-700 text-white text-xs font-semibold rounded-xl shadow-md shadow-teal-500/20 transition flex items-center space-x-1.5">
+                        <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                        <span>+ Book New Order</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Patient Details Master Card -->
+            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                        <div class="flex items-center space-x-2 mb-1">
+                            <span class="text-xs font-mono font-bold px-2.5 py-0.5 rounded-lg bg-slate-900 text-white" th:text="${patient.uhid}">PAT-26-00001</span>
+                            <span class="text-xs font-bold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center">
+                                <i data-lucide="lock" class="w-3 h-3 mr-1"></i> Anti-Tamper Locked
+                            </span>
+                        </div>
+                        <h2 class="text-2xl font-bold text-slate-900" th:text="${patient.salutation + ' ' + patient.fullName}">Patient Name</h2>
+                        <div class="text-xs text-slate-500 mt-1 flex flex-wrap gap-4">
+                            <span><b>Age/Sex:</b> <span th:text="${patient.formattedAgeAndSex}">45 Yrs / Male</span></span>
+                            <span><b>Blood Group:</b> <span th:text="${patient.bloodGroup != null and !patient.bloodGroup.empty ? patient.bloodGroup : 'Not Specified'}">B+</span></span>
+                            <span><b>Mobile:</b> <span class="font-mono text-slate-800" th:text="${patient.phone}">9876543210</span></span>
+                            <span><b>Address:</b> <span th:text="${patient.address != null and !patient.address.empty ? patient.address : 'N/A'}">Address</span></span>
+                        </div>
+                    </div>
+
+                    <!-- Lifetime Stats -->
+                    <div class="flex space-x-4 bg-slate-50 p-4 rounded-xl border border-slate-200 text-center text-xs">
+                        <div>
+                            <span class="text-slate-400 block font-medium">Total Visits</span>
+                            <span class="text-xl font-extrabold text-slate-900" th:text="${orders.size()}">1</span>
+                        </div>
+                        <div class="border-r border-slate-200"></div>
+                        <div>
+                            <span class="text-slate-400 block font-medium">Registered Since</span>
+                            <span class="text-xs font-bold text-slate-700 block mt-1" th:text="${#temporals.format(patient.createdAt, 'dd-MMM-yyyy')}">Date</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cumulative Visit History -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+                    <h2 class="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center">
+                        <i data-lucide="history" class="w-4 h-4 mr-2 text-clinical-600"></i> Lifetime Visit &amp; Report History
+                    </h2>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider font-semibold">
+                                <th class="py-3 px-4">Visit Date &amp; Token</th>
+                                <th class="py-3 px-4">Channel / Centre</th>
+                                <th class="py-3 px-4">Consultant Doctor</th>
+                                <th class="py-3 px-4">Tests Performed</th>
+                                <th class="py-3 px-4">Billing</th>
+                                <th class="py-3 px-4">Status</th>
+                                <th class="py-3 px-4 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 text-slate-700">
+                            <tr th:if="${orders.empty}">
+                                <td colspan="7" class="py-8 text-center text-slate-400 italic">No past orders found for this patient.</td>
+                            </tr>
+                            <tr th:each="ord : ${orders}" class="hover:bg-slate-50/70 transition">
+                                <td class="py-3 px-4">
+                                    <div class="font-bold text-slate-900 flex items-center space-x-1">
+                                        <span class="px-1.5 py-0.5 rounded bg-slate-900 text-white text-[10px]" th:text="'#' + ${ord.dailyTokenNumber}">#1</span>
+                                        <span class="font-mono text-xs" th:text="${ord.orderNumber}">ORD-26-00001</span>
+                                    </div>
+                                    <div class="text-[11px] text-slate-500 mt-0.5" th:text="${#temporals.format(ord.orderDate, 'dd-MMM-yyyy')}">12-Nov-2026</div>
+                                </td>
+                                <td class="py-3 px-4">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold"
+                                          th:classappend="${ord.source.name() == 'WALK_IN' ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'bg-indigo-50 text-indigo-700 border border-indigo-200'}"
+                                          th:text="${ord.centreCode}">
+                                        MAIN
+                                    </span>
+                                </td>
+                                <td class="py-3 px-4 font-medium text-slate-800" th:text="${ord.doctor.name}">Doctor</td>
+                                <td class="py-3 px-4 max-w-xs">
+                                    <div class="flex flex-wrap gap-1">
+                                        <span th:each="it : ${ord.items}"
+                                              class="px-1.5 py-0.5 rounded text-[10px] bg-slate-100 text-slate-700 font-medium border border-slate-200">
+                                            <span th:text="${it.testName}">Test</span>
+                                        </span>
+                                    </div>
+                                </td>
+                                <td class="py-3 px-4">
+                                    <div class="font-bold text-slate-900" th:text="'₹ ' + ${ord.netAmount}">₹ 0.00</div>
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold border"
+                                          th:classappend="${ord.paymentStatus.badgeClass}"
+                                          th:text="${ord.paymentStatus.displayName}">Paid</span>
+                                </td>
+                                <td class="py-3 px-4">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border"
+                                          th:classappend="${ord.status.badgeClass}"
+                                          th:text="${ord.status.displayName}">Status</span>
+                                </td>
+                                <td class="py-3 px-4 text-right">
+                                    <span class="text-slate-400 font-mono text-[11px]">Slice 3: PDF</span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Edit Demographics Modal (Anti-Accidental Protection) -->
+            <div id="editDemographicsModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+                <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 text-xs">
+                    <div class="flex justify-between items-center mb-4 pb-2 border-b border-slate-100">
+                        <div>
+                            <h3 class="text-base font-bold text-slate-900">Edit Patient Demographics</h3>
+                            <p class="text-slate-400 text-[11px]">Modifications are tracked in the permanent audit trail</p>
+                        </div>
+                        <button onclick="document.getElementById('editDemographicsModal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600">
+                            <i data-lucide="x" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+
+                    <form th:action="@{/reception/patients/{id}/update-demographics(id=${patient.id})}" method="post" class="space-y-3">
+                        <div class="grid grid-cols-3 gap-3">
+                            <div>
+                                <label class="block font-semibold text-slate-700 mb-1">Salutation</label>
+                                <select name="salutation" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-clinical-600">
+                                    <option value="Mr." th:selected="${patient.salutation == 'Mr.'}">Mr.</option>
+                                    <option value="Mrs." th:selected="${patient.salutation == 'Mrs.'}">Mrs.</option>
+                                    <option value="Miss" th:selected="${patient.salutation == 'Miss'}">Miss</option>
+                                    <option value="Master" th:selected="${patient.salutation == 'Master'}">Master</option>
+                                    <option value="Baby" th:selected="${patient.salutation == 'Baby'}">Baby</option>
+                                    <option value="Dr." th:selected="${patient.salutation == 'Dr.'}">Dr.</option>
+                                </select>
+                            </div>
+                            <div class="col-span-2">
+                                <label class="block font-semibold text-slate-700 mb-1">Full Name</label>
+                                <input type="text" name="fullName" th:value="${patient.fullName}" required
+                                       class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-clinical-600">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-3 gap-3">
+                            <div>
+                                <label class="block font-semibold text-slate-700 mb-1">Age (Years)</label>
+                                <input type="number" name="ageYears" th:value="${patient.ageYears}" min="0" max="130" required
+                                       class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-clinical-600">
+                            </div>
+                            <div>
+                                <label class="block font-semibold text-slate-700 mb-1">Age (Months)</label>
+                                <input type="number" name="ageMonths" th:value="${patient.ageMonths}" min="0" max="11"
+                                       class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-clinical-600">
+                            </div>
+                            <div>
+                                <label class="block font-semibold text-slate-700 mb-1">Blood Group</label>
+                                <select name="bloodGroup" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-clinical-600">
+                                    <option value="">Unknown</option>
+                                    <option value="A+" th:selected="${patient.bloodGroup == 'A+'}">A+</option>
+                                    <option value="A-" th:selected="${patient.bloodGroup == 'A-'}">A-</option>
+                                    <option value="B+" th:selected="${patient.bloodGroup == 'B+'}">B+</option>
+                                    <option value="B-" th:selected="${patient.bloodGroup == 'B-'}">B-</option>
+                                    <option value="AB+" th:selected="${patient.bloodGroup == 'AB+'}">AB+</option>
+                                    <option value="AB-" th:selected="${patient.bloodGroup == 'AB-'}">AB-</option>
+                                    <option value="O+" th:selected="${patient.bloodGroup == 'O+'}">O+</option>
+                                    <option value="O-" th:selected="${patient.bloodGroup == 'O-'}">O-</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block font-semibold text-slate-700 mb-1">Phone Number</label>
+                            <input type="text" name="phone" th:value="${patient.phone}" required
+                                   class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-clinical-600">
+                        </div>
+
+                        <div>
+                            <label class="block font-semibold text-slate-700 mb-1">Residential Address</label>
+                            <input type="text" name="address" th:value="${patient.address}"
+                                   class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-clinical-600">
+                        </div>
+
+                        <div class="pt-3 flex justify-end space-x-2 border-t border-slate-100">
+                            <button type="button" onclick="document.getElementById('editDemographicsModal').classList.add('hidden')"
+                                    class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl">Cancel</button>
+                            <button type="submit" class="px-4 py-2 bg-clinical-600 hover:bg-clinical-700 text-white font-bold rounded-xl shadow-sm">
+                                Save &amp; Re-Lock Record
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</body>
+</html>
