@@ -1,0 +1,22 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /
+
+spring:
+  application:
+    name: LCMS
+  profiles:
+    active: dev
+  thymeleaf:
+    cache: false
+    mode: HTML
+    encoding: UTF-8
+  messages:
+    basename: i18n/messages
+    encoding: UTF-8
+
+lcms:
+  name: "Dr. Diagnostic Centre & Pathology Lab"
+  code: "MAIN-01"
+  version: "1.0.0"

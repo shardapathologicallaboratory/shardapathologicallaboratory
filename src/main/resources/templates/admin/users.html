@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>User Management - LCMS</title>
+</head>
+<body>
+    <div th:replace="~{fragments/layout :: html (pageTitle='Staff & User Management', content=~{::content})}">
+        <div th:fragment="content" class="space-y-6">
+
+            <!-- Title & Create User Button -->
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-3 sm:space-y-0">
+                <div>
+                    <h1 class="text-2xl font-bold text-slate-900 tracking-tight flex items-center">
+                        <i data-lucide="shield-check" class="w-6 h-6 mr-2 text-clinical-600"></i> Staff &amp; Department Access
+                    </h1>
+                    <p class="text-xs text-slate-500 mt-0.5">Manage user credentials and assign department-level permissions (Req #2, #3)</p>
+                </div>
+
+                <button onclick="document.getElementById('createUserModal').classList.remove('hidden')"
+                        class="px-4 py-2.5 bg-clinical-600 hover:bg-clinical-700 text-white text-xs font-semibold rounded-xl shadow-md shadow-teal-500/20 transition flex items-center space-x-1.5">
+                    <i data-lucide="user-plus" class="w-4 h-4"></i>
+                    <span>Add New Staff Account</span>
+                </button>
+            </div>
+
+            <!-- Users Table -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider font-semibold">
+                                <th class="py-3.5 px-4">Staff Member</th>
+                                <th class="py-3.5 px-4">Username</th>
+                                <th class="py-3.5 px-4">Primary Role</th>
+                                <th class="py-3.5 px-4">Assigned Department(s)</th>
+                                <th class="py-3.5 px-4">Status</th>
+                                <th class="py-3.5 px-4 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 text-slate-700">
+                            <tr th:each="u : ${users}" class="hover:bg-slate-50/70 transition">
+                                <td class="py-3 px-4">
+                                    <div class="font-semibold text-slate-900" th:text="${u.fullName}">Full Name</div>
+                                    <div class="text-[11px] text-slate-400 font-mono" th:text="${u.phone}">9876543210</div>
+                                </td>
+                                <td class="py-3 px-4 font-mono font-medium text-slate-600" th:text="${u.username}">
+                                    username
+                                </td>
+                                <td class="py-3 px-4">
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-200"
+                                          th:text="${u.role.displayName}">
+                                        Role
+                                    </span>
+                                </td>
+                                <td class="py-3 px-4">
+                                    <div class="flex flex-wrap gap-1">
+                                        <span th:if="${u.allowedDepartments.empty}" class="text-slate-400 italic text-[11px]">
+                                            None / Global
+                                        </span>
+                                        <span th:each="dept : ${u.allowedDepartments}"
+                                              class="px-2 py-0.5 rounded text-[10px] font-medium bg-teal-50 text-teal-700 border border-teal-200 flex items-center space-x-1">
+                                            <span th:text="${dept.icon}">icon</span>
+                                            <span th:text="${dept.displayName}">Department</span>
+                                        </span>
+                                    </div>
+                                </td>
+                                <td class="py-3 px-4">
+                                    <span th:if="${u.active}" class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1"></span> Active
+                                    </span>
+                                    <span th:unless="${u.active}" class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-rose-500 mr-1"></span> Suspended
+                                    </span>
+                                </td>
+                                <td class="py-3 px-4 text-right space-x-1">
+                                    <button type="button" 
+                                            th:onclick="'openResetModal(' + ${u.id} + ', \'' + ${u.username} + '\')'"
+                                            class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[11px] font-medium transition">
+                                        Reset Pass
+                                    </button>
+                                    <form th:action="@{/admin/users/{id}/toggle-status(id=${u.id})}" method="post" class="inline">
+                                        <button type="submit" 
+                                                th:class="${u.active} ? 'px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-lg text-[11px] font-medium transition' : 'px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg text-[11px] font-medium transition'"
+                                                th:text="${u.active} ? 'Suspend' : 'Activate'">
+                                            Toggle
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Create User Modal -->
+            <div id="createUserModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+                <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200">
+                    <div class="flex justify-between items-center mb-4 pb-3 border-b border-slate-100">
+                        <h2 class="text-lg font-bold text-slate-900 flex items-center">
+                            <i data-lucide="user-plus" class="w-5 h-5 mr-2 text-clinical-600"></i> Add Staff Account
+                        </h2>
+                        <button onclick="document.getElementById('createUserModal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600">
+                            <i data-lucide="x" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+
+                    <form th:action="@{/admin/users/create}" method="post" class="space-y-4 text-xs">
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block font-semibold text-slate-700 uppercase tracking-wider mb-1">Username</label>
+                                <input type="text" name="username" required
+                                       class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-clinical-600"
+                                       placeholder="e.g. tech_rahul">
+                            </div>
+                            <div>
+                                <label class="block font-semibold text-slate-700 uppercase tracking-wider mb-1">Initial Password</label>
+                                <input type="password" name="password" required minlength="6"
+                                       class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-clinical-600"
+                                       placeholder="••••••••">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block font-semibold text-slate-700 uppercase tracking-wider mb-1">Full Name</label>
+                                <input type="text" name="fullName" required
+                                       class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-clinical-600"
+                                       placeholder="e.g. Rahul Sharma">
+                            </div>
+                            <div>
+                                <label class="block font-semibold text-slate-700 uppercase tracking-wider mb-1">Phone Number</label>
+                                <input type="text" name="phone"
+                                       class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-clinical-600"
+                                       placeholder="e.g. 9876543210">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block font-semibold text-slate-700 uppercase tracking-wider mb-1">Primary Role</label>
+                            <select name="role" required
+                                    class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-clinical-600">
+                                <option th:each="r : ${roles}" th:value="${r}" th:text="${r.displayName}">Role</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                                Assigned Department Access (For Technicians / Reporting)
+                            </label>
+                            <div class="grid grid-cols-2 gap-2 bg-slate-50 p-3 rounded-xl border border-slate-200 max-h-36 overflow-y-auto">
+                                <label th:each="dept : ${departments}" class="flex items-center space-x-2 text-[11px] cursor-pointer">
+                                    <input type="checkbox" name="departments" th:value="${dept}" class="rounded border-slate-300 text-clinical-600 focus:ring-clinical-500">
+                                    <span th:text="${dept.icon + ' ' + dept.displayName}">Dept</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="pt-3 flex justify-end space-x-2 border-t border-slate-100">
+                            <button type="button" onclick="document.getElementById('createUserModal').classList.add('hidden')"
+                                    class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl">
+                                Cancel
+                            </button>
+                            <button type="submit"
+                                    class="px-4 py-2 bg-clinical-600 hover:bg-clinical-700 text-white font-semibold rounded-xl shadow-md shadow-teal-500/20">
+                                Save User Account
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Reset Password Modal -->
+            <div id="resetModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+                <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-200">
+                    <h3 class="text-base font-bold text-slate-900 mb-1">Reset Staff Password</h3>
+                    <p class="text-xs text-slate-500 mb-4">Resetting password for: <span id="resetUserLabel" class="font-bold text-slate-800"></span></p>
+
+                    <form id="resetForm" method="post" class="space-y-3 text-xs">
+                        <div>
+                            <label class="block font-semibold text-slate-700 uppercase tracking-wider mb-1">New Temporary Password</label>
+                            <input type="password" name="newPassword" required minlength="6"
+                                   class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-clinical-600"
+                                   placeholder="••••••••">
+                        </div>
+
+                        <div class="pt-3 flex justify-end space-x-2">
+                            <button type="button" onclick="document.getElementById('resetModal').classList.add('hidden')"
+                                    class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl">
+                                Cancel
+                            </button>
+                            <button type="submit"
+                                    class="px-4 py-2 bg-clinical-600 hover:bg-clinical-700 text-white font-semibold rounded-xl">
+                                Set Password
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        function openResetModal(userId, username) {
+            document.getElementById('resetUserLabel').innerText = username;
+            document.getElementById('resetForm').action = '/admin/users/' + userId + '/reset-password';
+            document.getElementById('resetModal').classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
