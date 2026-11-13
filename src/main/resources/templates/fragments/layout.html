@@ -124,8 +124,7 @@
                     <span>Reception &amp; Billing</span>
                 </a>
 
-                <a sec:authorize="hasAnyRole('ADMIN', 'COLLECTION', 'RECEPTION')" href="#collection" 
-                   onclick="alert('Phlebotomy & Barcode queue will be active in Slice 2!')"
+                <a sec:authorize="hasAnyRole('ADMIN', 'COLLECTION', 'RECEPTION')" href="/collection" 
                    class="px-3 py-1.5 rounded-lg text-slate-700 hover:bg-slate-100 flex items-center space-x-1.5">
                     <i data-lucide="syringe" class="w-4 h-4 text-slate-500"></i>
                     <span>Phlebotomy (Collection)</span>

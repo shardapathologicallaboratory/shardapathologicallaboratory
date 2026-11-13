@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="'Barcode Sticker - #' + ${sample.sampleSequenceId}">Barcode Sticker</title>
+    <style>
+        @page {
+            size: 50mm 25mm;
+            margin: 0;
+        }
+        body {
+            margin: 0;
+            padding: 2mm;
+            font-family: Arial, sans-serif;
+            background-color: #fff;
+            color: #000;
+            width: 48mm;
+            height: 23mm;
+            box-sizing: border-box;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 7pt;
+            font-weight: bold;
+            line-height: 1;
+            border-bottom: 0.5px solid #000;
+            padding-bottom: 1px;
+        }
+        .patient-info {
+            font-size: 7pt;
+            font-weight: bold;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-top: 1px;
+        }
+        .meta-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 6pt;
+            color: #333;
+        }
+        .barcode-container {
+            text-align: center;
+            margin: 1px 0;
+        }
+        .barcode-img {
+            max-width: 100%;
+            height: 8mm;
+            display: block;
+            margin: 0 auto;
+        }
+        .barcode-number {
+            font-family: monospace;
+            font-size: 6.5pt;
+            font-weight: bold;
+            letter-spacing: 1px;
+            text-align: center;
+        }
+        .tests-footer {
+            font-size: 5.5pt;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: #222;
+        }
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="no-print" style="position: fixed; top: 10px; right: 10px; background: #f1f5f9; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; z-index: 100;">
+        <button onclick="window.print()" style="background: #0d9488; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-weight: bold; cursor: pointer;">
+            🖨️ Print Label (50x25mm)
+        </button>
+    </div>
+
+    <!-- Label Content -->
+    <div class="header">
+        <span>LCMS LAB</span>
+        <span th:text="'ID: ' + ${sample.sampleSequenceId}">ID: 1001</span>
+    </div>
+
+    <div class="patient-info" th:text="${patient.fullName + ' (' + patient.formattedAgeAndSex + ')'}">
+        Patient Name (Age/Sex)
+    </div>
+
+    <div class="meta-info">
+        <span th:text="${sample.vialType.displayName}">EDTA</span>
+        <span th:text="${#temporals.format(order.orderDate, 'dd-MMM')}">12-Nov</span>
+        <span th:text="${order.centreCode}">MAIN</span>
+    </div>
+
+    <div class="barcode-container">
+        <img th:if="${barcodeBase64 != null}" th:src="'data:image/png;base64,' + ${barcodeBase64}" class="barcode-img" alt="Barcode">
+        <div class="barcode-number" th:text="${sample.barcode}">01001</div>
+    </div>
+
+    <div class="tests-footer" th:text="'Tests: ' + ${testsSummary}">
+        Tests: CBC, ESR
+    </div>
+
+</body>
+</html>

@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Phlebotomy &amp; Collection Station - LCMS</title>
+</head>
+<body>
+    <div th:replace="~{fragments/layout :: html (pageTitle='Phlebotomy & Collection', content=~{::content})}">
+        <div th:fragment="content" class="space-y-6">
+
+            <!-- Title & Actions -->
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-3 sm:space-y-0">
+                <div>
+                    <h1 class="text-2xl font-bold text-slate-900 tracking-tight flex items-center">
+                        <i data-lucide="syringe" class="w-6 h-6 mr-2 text-clinical-600"></i> Phlebotomy &amp; Sample Collection Station
+                    </h1>
+                    <p class="text-xs text-slate-500 mt-0.5">Vial collection queue, Code 128 barcode stickers, and departmental lab run sheets</p>
+                </div>
+
+                <div class="flex items-center space-x-3">
+                    <a href="/collection/lab-sheet"
+                       class="px-4 py-2.5 bg-slate-900 hover:bg-black text-white text-xs font-semibold rounded-xl transition flex items-center space-x-1.5 shadow-sm">
+                        <i data-lucide="file-spreadsheet" class="w-4 h-4 text-teal-300"></i>
+                        <span>Generate Departmental Lab Sheet</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Recollection Alert Banner (Req #12) -->
+            <div th:if="${recollectionAlerts != null and !recollectionAlerts.empty}"
+                 class="p-4 rounded-2xl bg-rose-50 border border-rose-300 text-rose-900 shadow-sm">
+                <div class="flex items-center space-x-2 font-bold text-xs uppercase tracking-wider text-rose-700 mb-2">
+                    <i data-lucide="alert-triangle" class="w-4 h-4 text-rose-600 animate-pulse"></i>
+                    <span>High Priority: Sample Recollection Required (Flagged by Technician)</span>
+                </div>
+                <div class="space-y-2">
+                    <div th:each="rec : ${recollectionAlerts}" class="bg-white p-3 rounded-xl border border-rose-200 flex justify-between items-center text-xs">
+                        <div>
+                            <span class="font-bold text-slate-900" th:text="${rec.patient.fullName}">Patient</span>
+                            <span class="text-slate-500" th:text="'(' + ${rec.patient.phone} + ')'">Phone</span>
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-800 ml-2" th:text="'Vial: ' + ${rec.vialType.displayName}">Vial</span>
+                            <div class="text-[11px] text-rose-600 font-semibold mt-0.5" th:text="'Reason: ' + ${rec.flagReason}">Reason: Hemolyzed</div>
+                        </div>
+                        <form th:action="@{/collection/samples/{id}/collect(id=${rec.id})}" method="post">
+                            <button type="submit" class="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg font-bold text-xs">
+                                Recollected &amp; Replace
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pending Collection Queue Table -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+                    <h2 class="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center">
+                        <i data-lucide="test-tube-2" class="w-4 h-4 mr-2 text-clinical-600"></i> Pending Sample Vials to Collect
+                    </h2>
+                    <span class="text-xs text-slate-400 font-mono" th:text="'Pending Vials: ' + ${pendingSamples.size()}">Pending: 0</span>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider font-semibold">
+                                <th class="py-3 px-4">Sample ID</th>
+                                <th class="py-3 px-4">Vial / Container Type</th>
+                                <th class="py-3 px-4">Patient Profile</th>
+                                <th class="py-3 px-4">Channel / Centre</th>
+                                <th class="py-3 px-4">Assigned Department</th>
+                                <th class="py-3 px-4">Tests in this Vial</th>
+                                <th class="py-3 px-4 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 text-slate-700">
+                            <tr th:if="${pendingSamples.empty}">
+                                <td colspan="7" class="py-10 text-center text-slate-400 italic">
+                                    <i data-lucide="check-circle" class="w-8 h-8 mx-auto mb-2 text-emerald-400"></i>
+                                    All sample vials have been successfully collected! No pending samples in queue.
+                                </td>
+                            </tr>
+                            <tr th:each="s : ${pendingSamples}" class="hover:bg-slate-50/70 transition">
+                                <td class="py-3 px-4">
+                                    <div class="font-mono font-bold text-sm text-slate-900" th:text="'#' + ${s.sampleSequenceId}">#1001</div>
+                                    <span class="text-[10px] text-slate-400 font-mono" th:text="${s.order.orderNumber}">ORD-26-00001</span>
+                                    <div class="text-[10px] text-slate-500">Token <span class="font-bold text-slate-800" th:text="'#' + ${s.order.dailyTokenNumber}">#1</span></div>
+                                </td>
+                                <td class="py-3 px-4">
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold border"
+                                          th:style="'background-color: ' + ${s.vialType.colorHex} + '15; color: ' + ${s.vialType.colorHex} + '; border-color: ' + ${s.vialType.colorHex} + '40;'">
+                                        <span class="mr-1.5" th:text="${s.vialType.emoji}">🟣</span>
+                                        <span th:text="${s.vialType.displayName}">EDTA</span>
+                                    </span>
+                                </td>
+                                <td class="py-3 px-4">
+                                    <div class="font-bold text-slate-900" th:text="${s.patient.fullName}">Patient Name</div>
+                                    <span class="text-[11px] text-slate-500" th:text="${s.patient.formattedAgeAndSex}">45 Yrs / Male</span>
+                                    <div class="text-[10px] font-mono text-slate-400" th:text="${s.patient.uhid}">PAT-26-00001</div>
+                                </td>
+                                <td class="py-3 px-4">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold"
+                                          th:classappend="${s.order.source.name() == 'WALK_IN' ? 'bg-blue-50 text-blue-700 border border-blue-200' : (s.order.source.name() == 'B2B' ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' : 'bg-amber-50 text-amber-700 border border-amber-200')}"
+                                          th:text="${s.order.centreCode}">
+                                        MAIN
+                                    </span>
+                                </td>
+                                <td class="py-3 px-4">
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-700 border border-slate-200"
+                                          th:text="${s.department.displayName}">Dept</span>
+                                </td>
+                                <td class="py-3 px-4 max-w-xs">
+                                    <div class="flex flex-wrap gap-1">
+                                        <span th:each="it : ${s.order.items}" th:if="${it.department == s.department}"
+                                              class="px-1.5 py-0.5 rounded text-[10px] bg-slate-100 text-slate-700 font-medium border border-slate-200"
+                                              th:text="${it.testName}">
+                                            Test
+                                        </span>
+                                    </div>
+                                </td>
+                                <td class="py-3 px-4 text-right space-x-1 whitespace-nowrap">
+                                    <a th:href="@{/collection/samples/{id}/barcode(id=${s.id})}" target="_blank"
+                                       class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[11px] font-medium transition inline-flex items-center space-x-1">
+                                        <i data-lucide="printer" class="w-3.5 h-3.5"></i>
+                                        <span>Sticker</span>
+                                    </a>
+                                    <form th:action="@{/collection/samples/{id}/collect(id=${s.id})}" method="post" class="inline">
+                                        <button type="submit"
+                                                class="px-3 py-1 bg-clinical-600 hover:bg-clinical-700 text-white rounded-lg text-[11px] font-bold transition inline-flex items-center space-x-1 shadow-sm">
+                                            <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                                            <span>Mark Collected</span>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</body>
+</html>
