@@ -11,6 +11,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicLong;
 
 @Service
 public class OrderService {
@@ -19,6 +20,7 @@ public class OrderService {
     private final LabSampleRepository sampleRepository;
     private final PatientService patientService;
     private final TestCatalogueService catalogueService;
+    private final AtomicLong sampleSequence = new AtomicLong(1000L);
 
     public OrderService(LabOrderRepository orderRepository, LabSampleRepository sampleRepository,
                         PatientService patientService, TestCatalogueService catalogueService) {
@@ -200,7 +202,10 @@ public class OrderService {
 
     private synchronized Long getNextSampleSequenceId() {
         Long maxId = sampleRepository.findMaxSampleSequenceId();
-        return maxId != null ? maxId + 1 : 1001L;
+        if (maxId != null && maxId > sampleSequence.get()) {
+            sampleSequence.set(maxId);
+        }
+        return sampleSequence.incrementAndGet();
     }
 
     private synchronized String generateOrderNumber(LocalDate date) {
