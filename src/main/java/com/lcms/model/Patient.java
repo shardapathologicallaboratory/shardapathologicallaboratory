@@ -192,4 +192,11 @@ public class Patient {
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
     }
+
+    public String getFormattedAge() {
+        if (ageMonths != null && ageMonths > 0) {
+            return ageYears + " Y " + ageMonths + " M";
+        }
+        return ageYears + " Y";
+    }
 }

@@ -100,10 +100,8 @@ public class LabOrder {
     @Column(length = 64, unique = true)
     private String verificationToken;
 
-    @Column(nullable = false)
     private Integer reportVersion = 1;
 
-    @Column(nullable = false)
     private boolean amended = false;
 
     @Column(length = 500)

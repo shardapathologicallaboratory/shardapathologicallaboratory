@@ -40,7 +40,7 @@ public class TestItem {
 
     private boolean active = true;
 
-    @OneToMany(mappedBy = "testItem", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "testItem", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     @OrderBy("sortOrder ASC")
     private List<TestParameter> parameters = new ArrayList<>();
 

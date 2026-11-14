@@ -16,6 +16,7 @@ import com.lcms.service.TestCatalogueService;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
@@ -189,7 +190,8 @@ public class DataInitializer implements CommandLineRunner {
         ));
     }
 
-    private void seedSamplePatientsAndOrders() {
+    @Transactional
+    public void seedSamplePatientsAndOrders() {
         if (!patientService.search("").isEmpty()) {
             return;
         }

@@ -96,7 +96,7 @@
                                 <div class="text-[11px] text-slate-500 flex items-center space-x-1 mt-0.5">
                                     <span class="font-mono text-clinical-700 font-medium" th:text="${order.patient.uhid}">PAT-26-00001</span>
                                     <span>&bull;</span>
-                                    <span th:text="${order.patient.age + ' ' + order.patient.ageUnit + ' / ' + order.patient.gender}">35 Y / M</span>
+                                    <span th:text="${order.patient.formattedAge + ' / ' + order.patient.gender}">35 Y / M</span>
                                 </div>
                                 <div class="text-[11px] text-slate-400" th:text="${order.patient.phone}">9876543210</div>
                             </td>
@@ -160,7 +160,10 @@
                                     <!-- Dispatch Handover Button -->
                                     <button th:if="${order.status.name() != 'DISPATCHED'}"
                                             type="button"
-                                            th:onclick="'openDispatchModal(' + ${order.id} + ', \'' + ${order.orderNumber} + '\', \'' + ${order.patient.fullName} + '\')'"
+                                            th:data-order-id="${order.id}"
+                                            th:data-order-number="${order.orderNumber}"
+                                            th:data-patient-name="${order.patient.fullName}"
+                                            onclick="openDispatchModalFromBtn(this)"
                                             class="inline-flex items-center px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold border border-slate-300 transition"
                                             title="Mark as Dispatched / Handed Over">
                                         <i data-lucide="package-check" class="w-3.5 h-3.5 text-slate-600"></i>
@@ -246,6 +249,13 @@
                     row.style.display = 'none';
                 }
             });
+        }
+
+        function openDispatchModalFromBtn(btn) {
+            const orderId = btn.getAttribute('data-order-id');
+            const orderNumber = btn.getAttribute('data-order-number');
+            const patientName = btn.getAttribute('data-patient-name');
+            openDispatchModal(orderId, orderNumber, patientName);
         }
 
         function openDispatchModal(orderId, orderNumber, patientName) {

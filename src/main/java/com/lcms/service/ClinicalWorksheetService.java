@@ -50,18 +50,19 @@ public class ClinicalWorksheetService {
 
     @Transactional
     public List<TestResult> getOrInitializeResults(LabOrder order) {
-        List<TestResult> existing = resultRepository.findByOrderIdOrderByDepartmentAscSortOrderAsc(order.getId());
+        LabOrder attachedOrder = orderRepository.findById(order.getId()).orElse(order);
+        List<TestResult> existing = resultRepository.findByOrderIdOrderByDepartmentAscSortOrderAsc(attachedOrder.getId());
         if (!existing.isEmpty()) {
             return existing;
         }
 
         List<TestResult> created = new ArrayList<>();
-        for (OrderItem item : order.getItems()) {
+        for (OrderItem item : attachedOrder.getItems()) {
             TestItem testItem = item.getTestItem();
             if (testItem != null && testItem.getParameters() != null && !testItem.getParameters().isEmpty()) {
                 for (TestParameter p : testItem.getParameters()) {
                     TestResult res = new TestResult(
-                            item, order, order.getPatient(), item.getDepartment(),
+                            item, attachedOrder, attachedOrder.getPatient(), item.getDepartment(),
                             p.getName(), p.getUnit(), p.getNormalRangeDisplay(),
                             p.getSortOrder(), p.isCalculated()
                     );
@@ -70,7 +71,7 @@ public class ClinicalWorksheetService {
             } else {
                 // Ad-hoc Custom Test (Req #15 / Unlisted)
                 TestResult res = new TestResult(
-                        item, order, order.getPatient(), item.getDepartment(),
+                        item, attachedOrder, attachedOrder.getPatient(), item.getDepartment(),
                         item.getTestName(), "Obs", "Normal / As Observed",
                         1, false
                 );
