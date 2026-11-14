@@ -59,9 +59,22 @@ public class DataInitializer implements CommandLineRunner {
     }
 
     private void seedUsers() {
-        // 1. Lab Admin / Director
-        createOrUpdateUser("admin", "admin123", "Dr. Aman Kumar Sharma (Lab Director)", "9876543210",
-                Role.ROLE_ADMIN, Set.of(Department.values()));
+        Set<Department> allActiveDepts = Set.of(
+                Department.HEMATOLOGY,
+                Department.BIOCHEMISTRY,
+                Department.CLINICAL_PATHOLOGY,
+                Department.IMMUNOLOGY,
+                Department.SEROLOGY,
+                Department.CYTOLOGY,
+                Department.MICROBIOLOGY
+        );
+
+        // 1. Lab Admin - Sandeep
+        createOrUpdateUser("sandeep", "sandeep123", "Sandeep (Lab Admin)", "9876543201",
+                Role.ROLE_ADMIN, allActiveDepts);
+
+        createOrUpdateUser("admin", "admin123", "System Administrator", "9876543210",
+                Role.ROLE_ADMIN, allActiveDepts);
 
         // 2. Biochemistry - (pancham, rahul, sanjeet)
         createOrUpdateUser("pancham", "pancham123", "Pancham", "9876543221",
@@ -101,11 +114,15 @@ public class DataInitializer implements CommandLineRunner {
         createOrUpdateUser("payal", "payal123", "Payal", "9876543231",
                 Role.ROLE_COLLECTION, Set.of());
 
-        // 7. Finance & Reporting Defaults
-        createOrUpdateUser("reporting", "report123", "Reporting Desk", "9876543232",
+        // 7. Reporting - Aman
+        createOrUpdateUser("aman", "aman123", "Aman (Reporting Desk)", "9876543232",
                 Role.ROLE_REPORTING, Set.of());
 
-        createOrUpdateUser("accountant", "account123", "Senior Accountant", "9876543233",
+        createOrUpdateUser("reporting", "report123", "Reporting Desk", "9876543233",
+                Role.ROLE_REPORTING, Set.of());
+
+        // 8. Finance / Accountant
+        createOrUpdateUser("accountant", "account123", "Senior Accountant", "9876543234",
                 Role.ROLE_ACCOUNTANT, Set.of());
     }
 
