@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="'Worksheet - ' + ${patient.fullName} + ' (' + ${order.orderNumber} + ')'">Worksheet</title>
+</head>
+<body>
+    <div th:replace="~{fragments/layout :: html (pageTitle='Clinical Worksheet', content=~{::content})}">
+        <div th:fragment="content" class="space-y-6">
+
+            <!-- Title & Back -->
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-3 sm:space-y-0">
+                <div class="flex items-center space-x-3">
+                    <a href="/technician" class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 transition">
+                        <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                    </a>
+                    <div>
+                        <div class="flex items-center space-x-2">
+                            <span class="px-2 py-0.5 rounded-md font-bold text-xs bg-slate-900 text-white" th:text="'Token #' + ${order.dailyTokenNumber}">Token #1</span>
+                            <span class="font-mono text-xs font-bold text-slate-700" th:text="${order.orderNumber}">ORD-26-00001</span>
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border"
+                                  th:classappend="${order.status.badgeClass}"
+                                  th:text="${order.status.displayName}">Status</span>
+                        </div>
+                        <h1 class="text-xl font-bold text-slate-900 mt-1" th:text="${patient.fullName + ' (' + patient.formattedAgeAndSex + ')'}">Patient Name</h1>
+                    </div>
+                </div>
+
+                <!-- Referring Doctor & Centre Info -->
+                <div class="text-right text-xs text-slate-500">
+                    <div><b>Doctor:</b> <span class="text-slate-800 font-semibold" th:text="${order.doctor.name}">Dr. Name</span></div>
+                    <div><b>Channel / Centre:</b> <span class="font-mono font-bold text-clinical-700" th:text="${order.centreCode}">MAIN</span></div>
+                </div>
+            </div>
+
+            <!-- Active Recheck Flags Alert for this Order -->
+            <div th:if="${flags != null and !flags.empty}" class="space-y-2">
+                <div th:each="flg : ${flags}" class="p-4 rounded-2xl border text-xs shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2"
+                     th:classappend="${flg.resolved ? 'bg-slate-50 border-slate-200 text-slate-600' : 'bg-amber-50 border-amber-300 text-amber-900'}">
+                    <div>
+                        <div class="flex items-center space-x-2 font-bold mb-1">
+                            <i data-lucide="flag" class="w-4 h-4" th:classappend="${flg.resolved ? 'text-slate-400' : 'text-amber-600'}"></i>
+                            <span th:text="${flg.resolved ? 'RESOLVED RECHECK FLAG' : 'ACTIVE RECHECK FLAG'}">Flag</span>
+                            <span class="text-slate-500" th:text="'(From: ' + ${flg.sourceDepartment.displayName} + ' ➔ To: ' + ${flg.targetDepartment.displayName} + ')'">Dept</span>
+                        </div>
+                        <p class="font-semibold text-slate-800" th:text="'Reason: ' + ${flg.reason}">Reason</p>
+                        <p th:if="${flg.resolved}" class="text-[11px] text-emerald-700 mt-0.5" th:text="'Resolution: ' + ${flg.resolutionNote} + ' (by ' + ${flg.resolvedBy} + ')'">Resolution</p>
+                    </div>
+
+                    <form th:unless="${flg.resolved}" th:action="@{/technician/flags/{id}/resolve(id=${flg.id})}" method="post" class="flex items-center space-x-2 w-full sm:w-auto">
+                        <input type="hidden" name="orderId" th:value="${order.id}">
+                        <input type="text" name="resolutionNote" required placeholder="Resolution note / smear rechecked..."
+                               class="px-2.5 py-1 bg-white border border-amber-300 rounded-lg text-xs outline-none focus:ring-2 focus:ring-amber-500">
+                        <button type="submit" class="px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-bold text-xs whitespace-nowrap">
+                            Resolve Flag
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Main Worksheet Form -->
+            <form th:action="@{/technician/worksheet/{id}/save(id=${order.id})}" method="post" id="worksheetForm" class="space-y-6">
+
+                <!-- Results Grouped by Department -->
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div class="px-6 py-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+                        <div>
+                            <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center">
+                                <i data-lucide="table" class="w-4 h-4 mr-2 text-clinical-600"></i> Clinical Parameter Entry Grid
+                            </h2>
+                            <p class="text-[11px] text-slate-400">Press <kbd class="px-1.5 py-0.5 rounded bg-slate-200 font-mono text-[10px] text-slate-700">Enter</kbd> to move to next field &bull; Press <kbd class="px-1.5 py-0.5 rounded bg-slate-200 font-mono text-[10px] text-slate-700">Ctrl + T</kbd> on any row to add clinical footnote</p>
+                        </div>
+
+                        <span class="text-xs font-semibold px-2.5 py-1 rounded-lg bg-teal-50 text-clinical-700 border border-teal-200">
+                            Formula Engine Active ⚡
+                        </span>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse text-xs">
+                            <thead>
+                                <tr class="bg-slate-100/70 border-b border-slate-200 text-slate-500 uppercase tracking-wider font-semibold">
+                                    <th class="py-3 px-4">Department &amp; Parameter</th>
+                                    <th class="py-3 px-4">Reference Range</th>
+                                    <th class="py-3 px-4 w-56">Observed Result Value</th>
+                                    <th class="py-3 px-4">Flag / Status</th>
+                                    <th class="py-3 px-4">Delta Check (History)</th>
+                                    <th class="py-3 px-4 text-right">Remarks &amp; Flags</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100 text-slate-700">
+                                <tr th:each="res : ${results}" class="hover:bg-slate-50/70 transition result-row"
+                                    th:attr="data-id=${res.id}, data-name=${res.parameterName}">
+                                    
+                                    <!-- Parameter Name & Dept Badge -->
+                                    <td class="py-3 px-4">
+                                        <div class="font-bold text-slate-900" th:text="${res.parameterName}">Hemoglobin</div>
+                                        <div class="flex items-center space-x-2 mt-0.5">
+                                            <span class="text-[10px] text-slate-400 font-medium" th:text="${res.department.displayName}">Dept</span>
+                                            <span th:if="${res.unitSnapshot != null and !res.unitSnapshot.empty}"
+                                                  class="text-[10px] font-mono text-slate-500" th:text="'Unit: ' + ${res.unitSnapshot}">Unit</span>
+                                            <span th:if="${res.calculated}"
+                                                  class="text-[10px] px-1.5 py-0.2 rounded bg-indigo-50 text-indigo-700 font-semibold border border-indigo-200">
+                                                ⚡ Auto-Calculated
+                                            </span>
+                                        </div>
+                                    </td>
+
+                                    <!-- Normal Reference Range -->
+                                    <td class="py-3 px-4 font-mono text-slate-600" th:text="${res.rangeSnapshot}">
+                                        12.0 - 15.0
+                                    </td>
+
+                                    <!-- Result Input Box (Scoped Permission Check) -->
+                                    <td class="py-3 px-4">
+                                        <!-- Editable if User belongs to this department OR is Lab Admin -->
+                                        <div th:if="${isLabAdmin or allowedDepts.contains(res.department)}">
+                                            <input type="text"
+                                                   th:name="'val_' + ${res.id}"
+                                                   th:value="${res.valueText}"
+                                                   th:readonly="${res.calculated}"
+                                                   th:classappend="${res.calculated ? 'bg-slate-100 text-slate-600 font-mono font-bold cursor-not-allowed' : 'bg-slate-50 text-slate-900 font-bold focus:ring-2 focus:ring-clinical-600'}"
+                                                   class="worksheet-input w-full px-3 py-1.5 border border-slate-300 rounded-xl text-xs outline-none"
+                                                   placeholder="Enter result...">
+                                        </div>
+
+                                        <!-- Read-Only if belongs to other department -->
+                                        <div th:unless="${isLabAdmin or allowedDepts.contains(res.department)}" class="flex items-center space-x-1.5">
+                                            <span class="font-bold text-slate-800" th:text="${res.valueText != null and !res.valueText.empty ? res.valueText : 'Pending'}">12.5</span>
+                                            <span class="text-[10px] font-semibold text-slate-400 flex items-center">
+                                                <i data-lucide="lock" class="w-3 h-3 mr-0.5"></i> Read-Only
+                                            </span>
+                                        </div>
+                                    </td>
+
+                                    <!-- Flag Badge -->
+                                    <td class="py-3 px-4">
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border"
+                                              th:classappend="${res.flag.badgeClass}"
+                                              th:text="${res.flag.displayName}">
+                                            Normal
+                                        </span>
+                                    </td>
+
+                                    <!-- Delta Check Warning Callout -->
+                                    <td class="py-3 px-4">
+                                        <div th:if="${res.deltaAlert}" class="text-[11px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200 inline-flex items-center space-x-1">
+                                            <span>⚠️ Delta: </span>
+                                            <span th:text="${res.deltaPercentage + '% swing'}">+28%</span>
+                                            <span class="text-slate-500 font-normal" th:text="'(Prev: ' + ${res.previousValue} + ')'">(Prev: 10.2)</span>
+                                        </div>
+                                        <span th:unless="${res.deltaAlert}" class="text-slate-400 text-[11px]">
+                                            <span th:if="${res.previousValue != null}" th:text="'Prev: ' + ${res.previousValue}">Prev: 10.2</span>
+                                            <span th:unless="${res.previousValue != null}">-</span>
+                                        </span>
+                                    </td>
+
+                                    <!-- Technical Comments / Footnote & Raise Flag -->
+                                    <td class="py-3 px-4 text-right space-x-1 whitespace-nowrap">
+                                        <!-- Footnote Comment Modal Trigger (Req #15 / Ctrl+T) -->
+                                        <button type="button" th:onclick="'openCommentModal(' + ${res.id} + ', \'' + ${res.parameterName} + '\')'"
+                                                class="px-2.5 py-1 rounded-lg text-[11px] font-medium transition inline-flex items-center space-x-1"
+                                                th:classappend="${res.technicalComment != null and !res.technicalComment.empty ? 'bg-teal-50 text-teal-700 border border-teal-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-600'}">
+                                            <i data-lucide="message-square" class="w-3.5 h-3.5"></i>
+                                            <span th:text="${res.technicalComment != null and !res.technicalComment.empty ? 'Note Added' : 'Footnote'}">Footnote</span>
+                                        </button>
+                                        <input type="hidden" th:name="'cmt_' + ${res.id}" th:id="'hidden_cmt_' + ${res.id}" th:value="${res.technicalComment}">
+
+                                        <!-- Cross-Dept Raise Flag for Recheck (Available on other dept's tests) -->
+                                        <button th:unless="${isLabAdmin or allowedDepts.contains(res.department)}"
+                                                type="button" th:onclick="'openRaiseFlagModal(\'' + ${res.department} + '\')'"
+                                                class="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-lg text-[11px] font-medium transition inline-flex items-center space-x-1 border border-amber-200">
+                                            <i data-lucide="flag" class="w-3.5 h-3.5 text-amber-600"></i>
+                                            <span>Flag Recheck</span>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Action Button Footer -->
+                <div class="flex flex-col sm:flex-row justify-between items-center gap-3">
+                    <span class="text-xs text-slate-400">
+                        * All calculations and abnormal flags update instantly upon clicking "Save Worksheet".
+                    </span>
+
+                    <div class="flex items-center space-x-3">
+                        <button type="submit"
+                                class="px-6 py-2.5 bg-clinical-600 hover:bg-clinical-700 text-white font-bold text-xs rounded-xl shadow-md shadow-teal-500/20 transition flex items-center space-x-2">
+                            <i data-lucide="save" class="w-4 h-4"></i>
+                            <span>Save Worksheet Results</span>
+                        </button>
+
+                        <!-- Pathologist Verification Signoff (Admin / Director Role) -->
+                        <button sec:authorize="hasRole('ADMIN')" type="button" onclick="confirmVerification()"
+                                class="px-6 py-2.5 bg-slate-900 hover:bg-black text-white font-bold text-xs rounded-xl shadow-md transition flex items-center space-x-2">
+                            <i data-lucide="check-check" class="w-4 h-4 text-teal-300"></i>
+                            <span>Verify &amp; Sign Off (Pathologist)</span>
+                        </button>
+                    </div>
+                </div>
+            </form>
+
+            <!-- Pathologist Verification Post Form -->
+            <form id="verifyForm" th:action="@{/technician/worksheet/{id}/verify(id=${order.id})}" method="post" class="hidden"></form>
+
+            <!-- Footnote / Clinical Comment Modal (Req #15 / Ctrl+T) -->
+            <div id="commentModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+                <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-200 text-xs">
+                    <h3 class="text-base font-bold text-slate-900 mb-1">Clinical Footnote / Remark</h3>
+                    <p class="text-slate-500 mb-4">Attach methodology or technical comment for: <span id="commentParamName" class="font-bold text-slate-900"></span></p>
+
+                    <textarea id="modalCommentInput" rows="3" placeholder="e.g. Method: Hexokinase / Sample tested in duplicate..."
+                              class="w-full p-3 bg-slate-50 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-clinical-600 text-xs"></textarea>
+
+                    <div class="mt-4 flex justify-end space-x-2">
+                        <button type="button" onclick="document.getElementById('commentModal').classList.add('hidden')"
+                                class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl">Cancel</button>
+                        <button type="button" onclick="saveCommentModal()"
+                                class="px-4 py-1.5 bg-clinical-600 hover:bg-clinical-700 text-white font-bold rounded-xl shadow-sm">
+                            Save Footnote
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Raise Flag Modal -->
+            <div id="raiseFlagModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+                <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 text-xs">
+                    <h3 class="text-base font-bold text-slate-900 mb-1">Raise Cross-Dept Recheck Flag</h3>
+                    <p class="text-slate-500 mb-4">Request the target department to re-examine or re-run this sample before release</p>
+
+                    <form th:action="@{/technician/worksheet/{id}/raise-flag(id=${order.id})}" method="post" class="space-y-3">
+                        <input type="hidden" name="sourceDept" th:value="${currentUser.allowedDepartments.empty ? 'HEMATOLOGY' : currentUser.allowedDepartments.iterator().next()}">
+                        
+                        <div>
+                            <label class="block font-semibold text-slate-700 mb-1">Target Department to Alert *</label>
+                            <select name="targetDept" id="flagTargetDeptSelect" required
+                                    class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-clinical-600 font-bold">
+                                <option th:each="d : ${allDepartments}" th:value="${d}" th:text="${d.displayName}">Dept</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block font-semibold text-slate-700 mb-1">Clinical Discrepancy / Reason *</label>
+                            <textarea name="reason" rows="3" required placeholder="e.g. Total Bilirubin is 4.2 but Hb is 6.8 — please recheck peripheral smear for hemolysis / clumping before signoff."
+                                      class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-clinical-600"></textarea>
+                        </div>
+
+                        <div class="pt-3 flex justify-end space-x-2">
+                            <button type="button" onclick="document.getElementById('raiseFlagModal').classList.add('hidden')"
+                                    class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl">Cancel</button>
+                            <button type="submit" class="px-4 py-1.5 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl shadow-sm">
+                                Submit Recheck Flag
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Keyboard Navigation & Shortcuts Script -->
+    <script>
+        let currentCommentResId = null;
+
+        // Enter key moves down to next input field
+        const inputs = Array.from(document.querySelectorAll('.worksheet-input:not([readonly])'));
+        inputs.forEach((input, index) => {
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (index + 1 < inputs.length) {
+                        inputs[index + 1].focus();
+                    }
+                }
+            });
+        });
+
+        // Global Ctrl + T listener for focused row
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && (e.key === 't' || e.key === 'T')) {
+                e.preventDefault();
+                const active = document.activeElement;
+                const row = active ? active.closest('.result-row') : null;
+                if (row) {
+                    const resId = row.getAttribute('data-id');
+                    const paramName = row.getAttribute('data-name');
+                    openCommentModal(resId, paramName);
+                }
+            }
+        });
+
+        function openCommentModal(resId, paramName) {
+            currentCommentResId = resId;
+            document.getElementById('commentParamName').innerText = paramName;
+            const currentVal = document.getElementById('hidden_cmt_' + resId).value;
+            document.getElementById('modalCommentInput').value = currentVal || '';
+            document.getElementById('commentModal').classList.remove('hidden');
+            document.getElementById('modalCommentInput').focus();
+        }
+
+        function saveCommentModal() {
+            if (currentCommentResId) {
+                const comment = document.getElementById('modalCommentInput').value;
+                document.getElementById('hidden_cmt_' + currentCommentResId).value = comment;
+                document.getElementById('commentModal').classList.add('hidden');
+            }
+        }
+
+        function openRaiseFlagModal(targetDept) {
+            if (targetDept) {
+                document.getElementById('flagTargetDeptSelect').value = targetDept;
+            }
+            document.getElementById('raiseFlagModal').classList.remove('hidden');
+        }
+
+        function confirmVerification() {
+            if (confirm('Are you sure you want to officially VERIFY and SIGN OFF this report as Pathologist?')) {
+                document.getElementById('verifyForm').submit();
+            }
+        }
+    </script>
+</body>
+</html>

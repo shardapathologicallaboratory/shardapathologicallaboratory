@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Technician Workbench - LCMS</title>
+</head>
+<body>
+    <div th:replace="~{fragments/layout :: html (pageTitle='Technician Worksheets', content=~{::content})}">
+        <div th:fragment="content" class="space-y-6">
+
+            <!-- Title & User Department Badges -->
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-3 sm:space-y-0">
+                <div>
+                    <h1 class="text-2xl font-bold text-slate-900 tracking-tight flex items-center">
+                        <i data-lucide="flask-conical" class="w-6 h-6 mr-2 text-clinical-600"></i> Machine Room &amp; Bench Worksheets
+                    </h1>
+                    <p class="text-xs text-slate-500 mt-0.5">Department-scoped result entry, automatic CBC calculations, and delta anomaly checks</p>
+                </div>
+
+                <div class="flex items-center space-x-2">
+                    <span class="text-xs font-semibold text-slate-500">Your Assigned Desk:</span>
+                    <span th:if="${currentUser.allowedDepartments.empty}" class="px-2.5 py-1 rounded-lg text-xs bg-slate-900 text-white font-bold">
+                        Director / All Departments
+                    </span>
+                    <span th:each="d : ${currentUser.allowedDepartments}"
+                          class="px-2.5 py-1 rounded-lg text-xs font-bold bg-teal-50 text-teal-800 border border-teal-200 flex items-center space-x-1">
+                        <span th:text="${d.icon}">icon</span>
+                        <span th:text="${d.displayName}">Dept</span>
+                    </span>
+                </div>
+            </div>
+
+            <!-- Active Recheck Flags Banner (If Any) -->
+            <div th:if="${myDeptFlags != null and !myDeptFlags.empty}"
+                 class="p-4 rounded-2xl bg-amber-50 border border-amber-300 text-amber-900 shadow-sm">
+                <div class="flex items-center space-x-2 font-bold text-xs uppercase tracking-wider text-amber-800 mb-2">
+                    <i data-lucide="flag" class="w-4 h-4 text-amber-600 animate-bounce"></i>
+                    <span th:text="'Notice: ' + ${myDeptFlags.size()} + ' Recheck Request(s) Raised to Your Department by Other Technicians'">Recheck Flags</span>
+                </div>
+                <div class="space-y-2">
+                    <div th:each="flg : ${myDeptFlags}" class="bg-white p-3 rounded-xl border border-amber-200 flex justify-between items-center text-xs">
+                        <div>
+                            <span class="font-bold text-slate-900" th:text="'Order ' + ${flg.order.orderNumber} + ' (' + ${flg.order.patient.fullName} + ')'">Order</span>
+                            <span class="text-amber-700 ml-2" th:text="'Flagged by: ' + ${flg.sourceDepartment.displayName} + ' (' + ${flg.raisedBy} + ')'">From Dept</span>
+                            <p class="text-slate-600 mt-1" th:text="'Reason: ' + ${flg.reason}">Reason</p>
+                        </div>
+                        <a th:href="@{/technician/worksheet/{id}(id=${flg.order.id})}"
+                           class="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-bold text-xs shadow-sm">
+                            Open Worksheet to Review
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Orders Table Ready for Testing -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+                    <h2 class="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center">
+                        <i data-lucide="list-checks" class="w-4 h-4 mr-2 text-clinical-600"></i> Active Testing Queue
+                    </h2>
+                    <span class="text-xs text-slate-400 font-mono" th:text="'Total Orders: ' + ${orders.size()}">Total: 0</span>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider font-semibold">
+                                <th class="py-3 px-4">Token &amp; Order ID</th>
+                                <th class="py-3 px-4">Patient Profile</th>
+                                <th class="py-3 px-4">Channel / Centre</th>
+                                <th class="py-3 px-4">Referring Doctor</th>
+                                <th class="py-3 px-4">Tests Ordered</th>
+                                <th class="py-3 px-4">Status</th>
+                                <th class="py-3 px-4 text-right">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 text-slate-700">
+                            <tr th:if="${orders.empty}">
+                                <td colspan="7" class="py-8 text-center text-slate-400 italic">No orders currently waiting for testing.</td>
+                            </tr>
+                            <tr th:each="o : ${orders}" class="hover:bg-slate-50/70 transition">
+                                <td class="py-3 px-4">
+                                    <div class="font-bold text-slate-900 flex items-center space-x-1.5">
+                                        <span class="px-2 py-0.5 rounded-md font-bold text-xs bg-slate-900 text-white" th:text="'#' + ${o.dailyTokenNumber}">#1</span>
+                                        <span class="font-mono text-slate-600" th:text="${o.orderNumber}">ORD-26-00001</span>
+                                    </div>
+                                    <div class="text-[10px] text-slate-400 font-mono mt-0.5" th:text="${#temporals.format(o.orderDate, 'dd-MMM-yyyy')}">14-Nov</div>
+                                </td>
+                                <td class="py-3 px-4">
+                                    <div class="font-bold text-slate-900" th:text="${o.patient.fullName}">Patient</div>
+                                    <span class="text-[11px] text-slate-500" th:text="${o.patient.formattedAgeAndSex}">Age/Sex</span>
+                                    <div class="text-[10px] font-mono text-slate-400" th:text="${o.patient.uhid}">PAT-26-00001</div>
+                                </td>
+                                <td class="py-3 px-4">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold"
+                                          th:classappend="${o.source.name() == 'WALK_IN' ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'bg-indigo-50 text-indigo-700 border border-indigo-200'}"
+                                          th:text="${o.centreCode}">
+                                        MAIN
+                                    </span>
+                                </td>
+                                <td class="py-3 px-4 font-medium text-slate-800" th:text="${o.doctor.name}">Doctor</td>
+                                <td class="py-3 px-4 max-w-xs">
+                                    <div class="flex flex-wrap gap-1">
+                                        <span th:each="it : ${o.items}"
+                                              class="px-1.5 py-0.5 rounded text-[10px] bg-slate-100 text-slate-700 font-medium border border-slate-200"
+                                              th:text="${it.testName}">
+                                            Test
+                                        </span>
+                                    </div>
+                                </td>
+                                <td class="py-3 px-4">
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold border"
+                                          th:classappend="${o.status.badgeClass}"
+                                          th:text="${o.status.displayName}">Status</span>
+                                </td>
+                                <td class="py-3 px-4 text-right">
+                                    <a th:href="@{/technician/worksheet/{id}(id=${o.id})}"
+                                       class="px-4 py-1.5 bg-clinical-600 hover:bg-clinical-700 text-white rounded-xl text-xs font-bold transition inline-flex items-center space-x-1 shadow-sm">
+                                        <i data-lucide="edit" class="w-3.5 h-3.5"></i>
+                                        <span>Open Worksheet</span>
+                                    </a>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</body>
+</html>
