@@ -1,26 +1,21 @@
-# Multi-stage build for Spring Boot 3 / Java 21
+# Build stage
 FROM maven:3.9.6-eclipse-temurin-21-alpine AS build
 WORKDIR /app
 
-# Cache dependencies
+ENV MAVEN_OPTS="-Xmx400m"
+
 COPY pom.xml .
-RUN mvn dependency:go-offline -B
-
-# Build application artifact
 COPY src ./src
-RUN mvn clean package -DskipTests
 
-# Minimal JRE runtime
+RUN mvn clean package -DskipTests -B
+
+# Runtime stage
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
-# Create unprivileged user for security
-RUN addgroup -S lcms && adduser -S lcms -G lcms
-USER lcms
+COPY --from=build /app/target/lcms-app-1.0.0-SNAPSHOT.jar app.jar
 
-COPY --from=build --chown=lcms:lcms /app/target/lcms-app-1.0.0-SNAPSHOT.jar app.jar
+ENV PORT=10000
+EXPOSE 10000
 
-ENV PORT=8080
-EXPOSE 8080
-
-ENTRYPOINT ["java", "-Djava.security.egd=file:/dev/./urandom", "-Dserver.port=${PORT}", "-jar", "app.jar"]
+ENTRYPOINT ["sh", "-c", "java -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -Xmx384m -Dserver.port=${PORT:-10000} -jar app.jar"]
