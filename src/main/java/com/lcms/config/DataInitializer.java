@@ -59,97 +59,67 @@ public class DataInitializer implements CommandLineRunner {
     }
 
     private void seedUsers() {
-        if (userRepository.count() > 0) {
-            return;
-        }
-
         // 1. Lab Admin / Director
-        User admin = new User(
-                "admin",
-                passwordEncoder.encode("admin123"),
-                "Dr. Aman Kumar Sharma (Lab Director)",
-                "9876543210",
-                Role.ROLE_ADMIN,
-                Set.of(Department.values())
-        );
-        userRepository.save(admin);
+        createOrUpdateUser("admin", "admin123", "Dr. Aman Kumar Sharma (Lab Director)", "9876543210",
+                Role.ROLE_ADMIN, Set.of(Department.values()));
 
-        // 2. Receptionist
-        User reception = new User(
-                "reception",
-                passwordEncoder.encode("reception123"),
-                "Priya Sharma (Front Desk)",
-                "9876543211",
-                Role.ROLE_RECEPTION,
-                Set.of()
-        );
-        userRepository.save(reception);
+        // 2. Biochemistry - (pancham, rahul, sanjeet)
+        createOrUpdateUser("pancham", "pancham123", "Pancham", "9876543221",
+                Role.ROLE_TECHNICIAN, Set.of(Department.BIOCHEMISTRY, Department.IMMUNOLOGY));
 
-        // 3. Phlebotomist / Collection
-        User phlebo = new User(
-                "phlebotomist",
-                passwordEncoder.encode("phlebo123"),
-                "Sunil Soren (Phlebotomist)",
-                "9876543212",
-                Role.ROLE_COLLECTION,
-                Set.of()
-        );
-        userRepository.save(phlebo);
+        createOrUpdateUser("rahul", "rahul123", "Rahul", "9876543222",
+                Role.ROLE_TECHNICIAN, Set.of(Department.BIOCHEMISTRY));
 
-        // 4. Hematology Technician
-        User hemaTech = new User(
-                "tech_hema",
-                passwordEncoder.encode("hema123"),
-                "Vikas Verma (Hematology Tech)",
-                "9876543213",
-                Role.ROLE_TECHNICIAN,
-                Set.of(Department.HEMATOLOGY)
-        );
-        userRepository.save(hemaTech);
+        createOrUpdateUser("sanjeet", "sanjeet123", "Sanjeet", "9876543223",
+                Role.ROLE_TECHNICIAN, Set.of(Department.BIOCHEMISTRY));
 
-        // 5. Biochemistry Technician
-        User bioTech = new User(
-                "tech_bio",
-                passwordEncoder.encode("bio123"),
-                "Rakesh Kumar (Biochemistry Tech)",
-                "9876543214",
-                Role.ROLE_TECHNICIAN,
-                Set.of(Department.BIOCHEMISTRY)
-        );
-        userRepository.save(bioTech);
+        // 3. Haemoto & Clinical - (satyam, sudhir)
+        createOrUpdateUser("satyam", "satyam123", "Satyam", "9876543224",
+                Role.ROLE_TECHNICIAN, Set.of(Department.HEMATOLOGY, Department.CLINICAL_PATHOLOGY));
 
-        // 6. Clinical Pathology Technician
-        User clinTech = new User(
-                "tech_clinpath",
-                passwordEncoder.encode("clin123"),
-                "Anjali Kumari (Clinical Path Tech)",
-                "9876543215",
-                Role.ROLE_TECHNICIAN,
-                Set.of(Department.CLINICAL_PATHOLOGY)
-        );
-        userRepository.save(clinTech);
+        createOrUpdateUser("sudhir", "sudhir123", "Sudhir", "9876543225",
+                Role.ROLE_TECHNICIAN, Set.of(Department.HEMATOLOGY, Department.CLINICAL_PATHOLOGY));
 
-        // 7. Reporting & Dispatch Desk
-        User reporting = new User(
-                "reporting",
-                passwordEncoder.encode("report123"),
-                "Rohit Raj (Report Dispatch)",
-                "9876543216",
-                Role.ROLE_REPORTING,
-                Set.of(Department.CLINICAL_PATHOLOGY)
-        );
-        userRepository.save(reporting);
+        // 4. Immunology, Serology & Cytology - (pancham, neha)
+        createOrUpdateUser("neha", "neha123", "Neha", "9876543226",
+                Role.ROLE_TECHNICIAN, Set.of(Department.IMMUNOLOGY, Department.SEROLOGY, Department.CYTOLOGY));
 
-        // 8. Accountant
-        User accountant = new User(
-                "accountant",
-                passwordEncoder.encode("account123"),
-                "Deepak Lal (Senior Accountant)",
-                "9876543217",
-                Role.ROLE_ACCOUNTANT,
-                Set.of()
-        );
-        userRepository.save(accountant);
+        // 5. Reception - (sapna, sonu)
+        createOrUpdateUser("sapna", "sapna123", "Sapna", "9876543227",
+                Role.ROLE_RECEPTION, Set.of());
+
+        createOrUpdateUser("sonu", "sonu123", "Sonu", "9876543228",
+                Role.ROLE_RECEPTION, Set.of());
+
+        // 6. Collection - (gautam, adarsh, payal)
+        createOrUpdateUser("gautam", "gautam123", "Gautam", "9876543229",
+                Role.ROLE_COLLECTION, Set.of());
+
+        createOrUpdateUser("adarsh", "adarsh123", "Adarsh", "9876543230",
+                Role.ROLE_COLLECTION, Set.of());
+
+        createOrUpdateUser("payal", "payal123", "Payal", "9876543231",
+                Role.ROLE_COLLECTION, Set.of());
+
+        // 7. Finance & Reporting Defaults
+        createOrUpdateUser("reporting", "report123", "Reporting Desk", "9876543232",
+                Role.ROLE_REPORTING, Set.of());
+
+        createOrUpdateUser("accountant", "account123", "Senior Accountant", "9876543233",
+                Role.ROLE_ACCOUNTANT, Set.of());
+    }
+
+    private void createOrUpdateUser(String username, String rawPassword, String fullName, String phone, Role role, Set<Department> departments) {
+        userRepository.findByUsername(username).ifPresentOrElse(u -> {
+            u.setFullName(fullName);
+            u.setRole(role);
+            u.setAllowedDepartments(departments);
+            u.setActive(true);
+            userRepository.save(u);
+        }, () -> {
+            User newUser = new User(username, passwordEncoder.encode(rawPassword), fullName, phone, role, departments);
+            userRepository.save(newUser);
+        });
     }
 
     private void seedDoctors() {
@@ -227,7 +197,7 @@ public class DataInitializer implements CommandLineRunner {
                     p1.getId(), drAgrawal, PatientSource.COLLECTION_CENTRE, "DLT-22",
                     List.of(cbc.getId(), typhidot.getId()), null,
                     BigDecimal.ZERO, "", new BigDecimal("530.00"), PaymentMode.CASH, "",
-                    "Priya Sharma", "Fever x 4 days"
+                    "Sapna", "Fever x 4 days"
             );
 
             // Populate sample verified results for CBC & Typhidot
@@ -249,7 +219,7 @@ public class DataInitializer implements CommandLineRunner {
                     values.put(r.getId(), "Negative (-)");
                 }
             }
-            worksheetService.saveWorksheetResults(order1.getId(), values, java.util.Map.of(), "tech_hema", java.util.Set.of(), true);
+            worksheetService.saveWorksheetResults(order1.getId(), values, java.util.Map.of(), "satyam", java.util.Set.of(), true);
             worksheetService.verifyAllResultsForOrder(order1.getId(), "Dr. S. K. Verma, MD (Path)");
         }
 
@@ -259,7 +229,7 @@ public class DataInitializer implements CommandLineRunner {
                     p2.getId(), drVerma, PatientSource.WALK_IN, "MAIN",
                     List.of(lft.getId(), kft.getId(), fbs.getId()), null,
                     new BigDecimal("50.00"), "Senior citizen discount", new BigDecimal("1300.00"), PaymentMode.UPI, "UPI/2611/849201",
-                    "Priya Sharma", "Routine health checkup"
+                    "Sapna", "Routine health checkup"
             );
         }
     }

@@ -124,15 +124,21 @@ public class TestCatalogueService {
         urine.addParameter(new TestParameter("Epithelial Cells", "/HPF", "Few / 1-4", 0.0, 4.0, 8, false));
         testItemRepository.save(urine);
 
-        // 7. Typhidot IgM & IgG - Serology & Immunology
-        TestItem typhidot = new TestItem("TYPHIDOT", "Typhidot IgM & IgG", Department.SEROLOGY_IMMUNOLOGY, VialType.PLAIN,
+        // 7. Typhidot IgM & IgG - Serology
+        TestItem typhidot = new TestItem("TYPHIDOT", "Typhidot IgM & IgG", Department.SEROLOGY, VialType.PLAIN,
                 new BigDecimal("400.00"), new BigDecimal("200.00"), new BigDecimal("280.00"));
         typhidot.addParameter(new TestParameter("Typhidot IgM", "", "Negative", 0.0, 0.0, 1, false));
         typhidot.addParameter(new TestParameter("Typhidot IgG", "", "Negative", 0.0, 0.0, 2, false));
         testItemRepository.save(typhidot);
 
-        // 8. FNAC / Cytology (Req #16 with Image Support)
-        TestItem fnac = new TestItem("FNAC", "Fine Needle Aspiration Cytology (FNAC)", Department.CYTOLOGY_HISTO, VialType.PLAIN,
+        // 8. Thyroid Stimulating Hormone (TSH) - Immunology
+        TestItem tsh = new TestItem("TSH", "Thyroid Stimulating Hormone (TSH)", Department.IMMUNOLOGY, VialType.SST_GEL,
+                new BigDecimal("300.00"), new BigDecimal("150.00"), new BigDecimal("220.00"));
+        tsh.addParameter(new TestParameter("TSH (Ultrasensitive)", "µIU/mL", "0.35 - 4.94", 0.35, 4.94, 1, false));
+        testItemRepository.save(tsh);
+
+        // 9. FNAC / Cytology (Req #16 with Image Support)
+        TestItem fnac = new TestItem("FNAC", "Fine Needle Aspiration Cytology (FNAC)", Department.CYTOLOGY, VialType.PLAIN,
                 new BigDecimal("1200.00"), new BigDecimal("700.00"), new BigDecimal("900.00"));
         fnac.addParameter(new TestParameter("Site of Aspiration", "", "Specified by Doctor", 0.0, 0.0, 1, false));
         fnac.addParameter(new TestParameter("Gross Examination", "", "Narrative", 0.0, 0.0, 2, false));

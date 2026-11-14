@@ -4,9 +4,10 @@ public enum Department {
     HEMATOLOGY("Hematology", "🩸", "CBC, ESR, Blood Group, Peripheral Smear"),
     BIOCHEMISTRY("Biochemistry", "🧪", "KFT, LFT, Electrolytes, Glucose, Lipid Profile"),
     CLINICAL_PATHOLOGY("Clinical Pathology", "🔬", "Urine Routine & Micro, Stool, Semen"),
-    SEROLOGY_IMMUNOLOGY("Serology & Immunology", "🛡️", "Widal, Typhidot, Malaria Antigen, Thyroid, Allergy"),
-    MICROBIOLOGY("Microbiology & Culture", "🧫", "Urine/Blood Culture & Sensitivity, Sputum AFB"),
-    CYTOLOGY_HISTO("Cytology & Histopathology", "📷", "FNAC, Biopsy, Fluid Cytology (Requires Images)");
+    IMMUNOLOGY("Immunology", "🧬", "Thyroid (T3/T4/TSH), Hormones, Vitamin D, B12, Allergy"),
+    SEROLOGY("Serology", "🛡️", "Widal, Typhidot, Malaria Antigen, Dengue, Rapid Tests"),
+    CYTOLOGY("Cytology & Histopathology", "📷", "FNAC, Biopsy, Fluid Cytology (Requires Images)"),
+    MICROBIOLOGY("Microbiology & Culture", "🧫", "Urine/Blood Culture & Sensitivity, Sputum AFB");
 
     private final String displayName;
     private final String icon;
