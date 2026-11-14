@@ -158,7 +158,10 @@
                                     <!-- Technical Comments / Footnote & Raise Flag -->
                                     <td class="py-3 px-4 text-right space-x-1 whitespace-nowrap">
                                         <!-- Footnote Comment Modal Trigger (Req #15 / Ctrl+T) -->
-                                        <button type="button" th:onclick="'openCommentModal(' + ${res.id} + ', \'' + ${res.parameterName} + '\')'"
+                                        <button type="button"
+                                                th:data-id="${res.id}"
+                                                th:data-name="${res.parameterName}"
+                                                onclick="openCommentModalFromBtn(this)"
                                                 class="px-2.5 py-1 rounded-lg text-[11px] font-medium transition inline-flex items-center space-x-1"
                                                 th:classappend="${res.technicalComment != null and !res.technicalComment.empty ? 'bg-teal-50 text-teal-700 border border-teal-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-600'}">
                                             <i data-lucide="message-square" class="w-3.5 h-3.5"></i>
@@ -168,7 +171,9 @@
 
                                         <!-- Cross-Dept Raise Flag for Recheck (Available on other dept's tests) -->
                                         <button th:unless="${isLabAdmin or allowedDepts.contains(res.department)}"
-                                                type="button" th:onclick="'openRaiseFlagModal(\'' + ${res.department} + '\')'"
+                                                type="button"
+                                                th:data-dept="${res.department}"
+                                                onclick="openRaiseFlagModalFromBtn(this)"
                                                 class="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-lg text-[11px] font-medium transition inline-flex items-center space-x-1 border border-amber-200">
                                             <i data-lucide="flag" class="w-3.5 h-3.5 text-amber-600"></i>
                                             <span>Flag Recheck</span>
@@ -293,6 +298,17 @@
                 }
             }
         });
+
+        function openCommentModalFromBtn(btn) {
+            const resId = btn.getAttribute('data-id');
+            const paramName = btn.getAttribute('data-name');
+            openCommentModal(resId, paramName);
+        }
+
+        function openRaiseFlagModalFromBtn(btn) {
+            const targetDept = btn.getAttribute('data-dept');
+            openRaiseFlagModal(targetDept);
+        }
 
         function openCommentModal(resId, paramName) {
             currentCommentResId = resId;

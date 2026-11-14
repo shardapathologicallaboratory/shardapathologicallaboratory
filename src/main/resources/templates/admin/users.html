@@ -75,7 +75,9 @@
                                 </td>
                                 <td class="py-3 px-4 text-right space-x-1">
                                     <button type="button" 
-                                            th:onclick="'openResetModal(' + ${u.id} + ', \'' + ${u.username} + '\')'"
+                                            th:data-user-id="${u.id}"
+                                            th:data-username="${u.username}"
+                                            onclick="openResetModal(this.getAttribute('data-user-id'), this.getAttribute('data-username'))"
                                             class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[11px] font-medium transition">
                                         Reset Pass
                                     </button>
