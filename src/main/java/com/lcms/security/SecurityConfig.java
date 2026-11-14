@@ -46,14 +46,15 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/login", "/css/**", "/js/**", "/images/**", "/favicon.ico").permitAll()
+                .requestMatchers("/login", "/v/**", "/css/**", "/js/**", "/images/**", "/favicon.ico").permitAll()
                 .requestMatchers("/h2-console/**").permitAll()
                 .requestMatchers("/admin/**").hasRole("ADMIN")
-                .requestMatchers("/accountant/**").hasAnyRole("ADMIN", "ACCOUNTANT")
-                .requestMatchers("/reception/**").hasAnyRole("ADMIN", "RECEPTION")
+                .requestMatchers("/accountant/**").hasAnyRole("ADMIN", "ACCOUNTANT", "RECEPTION")
+                .requestMatchers("/reception/**").hasAnyRole("ADMIN", "RECEPTION", "ACCOUNTANT")
                 .requestMatchers("/collection/**").hasAnyRole("ADMIN", "COLLECTION", "RECEPTION")
-                .requestMatchers("/reporting/**").hasAnyRole("ADMIN", "REPORTING")
+                .requestMatchers("/reporting/**").hasAnyRole("ADMIN", "REPORTING", "RECEPTION", "ACCOUNTANT")
                 .requestMatchers("/technician/**").hasAnyRole("ADMIN", "TECHNICIAN")
+                .requestMatchers("/reports/**").authenticated()
                 .anyRequest().authenticated()
             )
             .formLogin(form -> form

@@ -1,11 +1,15 @@
 package com.lcms.config;
 
 import com.lcms.model.Doctor;
+import com.lcms.model.LabOrder;
 import com.lcms.model.Patient;
+import com.lcms.model.TestResult;
 import com.lcms.model.User;
 import com.lcms.model.enums.*;
 import com.lcms.repository.DoctorRepository;
+import com.lcms.repository.TestResultRepository;
 import com.lcms.repository.UserRepository;
+import com.lcms.service.ClinicalWorksheetService;
 import com.lcms.service.OrderService;
 import com.lcms.service.PatientService;
 import com.lcms.service.TestCatalogueService;
@@ -14,7 +18,9 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @Configuration
@@ -25,16 +31,21 @@ public class DataInitializer implements CommandLineRunner {
     private final PatientService patientService;
     private final TestCatalogueService catalogueService;
     private final OrderService orderService;
+    private final ClinicalWorksheetService worksheetService;
+    private final TestResultRepository testResultRepository;
     private final PasswordEncoder passwordEncoder;
 
     public DataInitializer(UserRepository userRepository, DoctorRepository doctorRepository,
                            PatientService patientService, TestCatalogueService catalogueService,
-                           OrderService orderService, PasswordEncoder passwordEncoder) {
+                           OrderService orderService, ClinicalWorksheetService worksheetService,
+                           TestResultRepository testResultRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.doctorRepository = doctorRepository;
         this.patientService = patientService;
         this.catalogueService = catalogueService;
         this.orderService = orderService;
+        this.worksheetService = worksheetService;
+        this.testResultRepository = testResultRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -210,12 +221,34 @@ public class DataInitializer implements CommandLineRunner {
 
         // Order 1: Shivansh Tiwari - Collection Centre (DLT-22) - CBC & Typhidot
         if (cbc != null && typhidot != null) {
-            orderService.createOrder(
+            LabOrder order1 = orderService.createOrder(
                     p1.getId(), drAgrawal, PatientSource.COLLECTION_CENTRE, "DLT-22",
                     List.of(cbc.getId(), typhidot.getId()), null,
                     BigDecimal.ZERO, "", new BigDecimal("530.00"), PaymentMode.CASH, "",
                     "Priya Sharma", "Fever x 4 days"
             );
+
+            // Populate sample verified results for CBC & Typhidot
+            List<TestResult> results1 = worksheetService.getOrInitializeResults(order1);
+            Map<Long, String> values = new java.util.HashMap<>();
+            for (TestResult r : results1) {
+                String name = r.getParameterName().toLowerCase();
+                if (name.contains("hemoglobin")) {
+                    values.put(r.getId(), "13.8");
+                } else if (name.contains("total leucocyte") || name.contains("tlc") || name.contains("wbc")) {
+                    values.put(r.getId(), "7400");
+                } else if (name.contains("platelet")) {
+                    values.put(r.getId(), "2.6");
+                } else if (name.contains("rbc")) {
+                    values.put(r.getId(), "4.5");
+                } else if (name.contains("typhidot igm")) {
+                    values.put(r.getId(), "Positive (+)");
+                } else if (name.contains("typhidot igg")) {
+                    values.put(r.getId(), "Negative (-)");
+                }
+            }
+            worksheetService.saveWorksheetResults(order1.getId(), values, java.util.Map.of(), "tech_hema", java.util.Set.of(), true);
+            worksheetService.verifyAllResultsForOrder(order1.getId(), "Dr. S. K. Verma, MD (Path)");
         }
 
         // Order 2: Anita Devi - Walk-in - LFT, KFT, FBS

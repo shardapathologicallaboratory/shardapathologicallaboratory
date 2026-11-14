@@ -130,31 +130,34 @@
                     <span>Phlebotomy (Collection)</span>
                 </a>
 
-                <a sec:authorize="hasAnyRole('ADMIN', 'TECHNICIAN')" href="#technician" 
-                   onclick="alert('Machine Worksheets & Delta checks will be active in Slice 3!')"
+                <a sec:authorize="hasAnyRole('ADMIN', 'TECHNICIAN')" href="/technician" 
                    class="px-3 py-1.5 rounded-lg text-slate-700 hover:bg-slate-100 flex items-center space-x-1.5">
                     <i data-lucide="flask-conical" class="w-4 h-4 text-slate-500"></i>
                     <span>Machine Worksheets</span>
                 </a>
 
-                <a sec:authorize="hasAnyRole('ADMIN', 'REPORTING')" href="#reporting" 
-                   onclick="alert('Reporting & Print Queue will be active in Slice 3!')"
+                <a sec:authorize="hasAnyRole('ADMIN', 'REPORTING', 'RECEPTION', 'ACCOUNTANT')" href="/reporting" 
                    class="px-3 py-1.5 rounded-lg text-slate-700 hover:bg-slate-100 flex items-center space-x-1.5">
                     <i data-lucide="printer" class="w-4 h-4 text-slate-500"></i>
                     <span>Reporting Desk</span>
                 </a>
 
-                <a sec:authorize="hasAnyRole('ADMIN', 'ACCOUNTANT')" href="#accountant" 
-                   onclick="alert('Shift Cash Handover & Ledger will be active in Slice 4!')"
+                <a sec:authorize="hasAnyRole('ADMIN', 'ACCOUNTANT', 'RECEPTION')" href="/accountant" 
                    class="px-3 py-1.5 rounded-lg text-slate-700 hover:bg-slate-100 flex items-center space-x-1.5">
                     <i data-lucide="wallet" class="w-4 h-4 text-slate-500"></i>
-                    <span>Accounts &amp; Ledger</span>
+                    <span>Accounts &amp; Shifts</span>
+                </a>
+
+                <a sec:authorize="hasRole('ADMIN')" href="/admin/audit" 
+                   class="px-3 py-1.5 rounded-lg text-amber-700 bg-amber-50 hover:bg-amber-100 flex items-center space-x-1.5">
+                    <i data-lucide="shield" class="w-4 h-4 text-amber-600"></i>
+                    <span>Audit Chain</span>
                 </a>
 
                 <a sec:authorize="hasRole('ADMIN')" href="/admin/users" 
                    class="px-3 py-1.5 rounded-lg text-clinical-700 bg-clinical-50 hover:bg-clinical-100 flex items-center space-x-1.5 ml-auto">
-                    <i data-lucide="shield-check" class="w-4 h-4 text-clinical-600"></i>
-                    <span>User Management</span>
+                    <i data-lucide="users" class="w-4 h-4 text-clinical-600"></i>
+                    <span>Staff Management</span>
                 </a>
             </div>
         </div>

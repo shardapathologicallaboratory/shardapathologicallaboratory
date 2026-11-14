@@ -22,15 +22,18 @@ public class ClinicalWorksheetService {
     private final LabOrderRepository orderRepository;
     private final LabSampleRepository sampleRepository;
     private final RecheckFlagRepository flagRepository;
+    private final AuditService auditService;
 
     public ClinicalWorksheetService(TestResultRepository resultRepository,
                                     LabOrderRepository orderRepository,
                                     LabSampleRepository sampleRepository,
-                                    RecheckFlagRepository flagRepository) {
+                                    RecheckFlagRepository flagRepository,
+                                    AuditService auditService) {
         this.resultRepository = resultRepository;
         this.orderRepository = orderRepository;
         this.sampleRepository = sampleRepository;
         this.flagRepository = flagRepository;
+        this.auditService = auditService;
     }
 
     public List<TestResult> getResultsForOrder(Long orderId) {
@@ -319,14 +322,52 @@ public class ClinicalWorksheetService {
         List<TestResult> results = resultRepository.findByOrderIdOrderByDepartmentAscSortOrderAsc(orderId);
         LocalDateTime now = LocalDateTime.now();
 
+        StringBuilder sb = new StringBuilder();
+        sb.append(order.getOrderNumber()).append("|").append(order.getPatient().getUhid()).append("|");
+
         for (TestResult r : results) {
             r.setStatus("VERIFIED");
             r.setVerifiedBy(verifiedBy);
             r.setVerifiedAt(now);
+            sb.append(r.getParameterName()).append(":").append(r.getValueText()).append(";");
         }
         resultRepository.saveAll(results);
 
+        if (order.getVerificationToken() == null || order.getVerificationToken().isEmpty()) {
+            order.setVerificationToken(UUID.randomUUID().toString().replace("-", ""));
+        }
+        order.setReportHash(AuditService.computeSha256(sb.toString()));
+        order.setVerifiedAt(now);
+        order.setVerifiedBy(verifiedBy);
         order.setStatus(OrderStatus.VERIFIED);
         orderRepository.save(order);
+
+        auditService.logAction(verifiedBy, "REPORT_VERIFIED", "ORDER", order.getOrderNumber(),
+                "Verified by " + verifiedBy + " (v" + order.getReportVersion() + ") Hash: " + order.getReportHash().substring(0, 16) + "...", null);
+    }
+
+    @Transactional
+    public void amendReport(Long orderId, String amendedBy, String reason) {
+        LabOrder order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("Order not found: " + orderId));
+
+        int newVersion = order.getReportVersion() != null ? order.getReportVersion() + 1 : 2;
+        order.setReportVersion(newVersion);
+        order.setAmended(true);
+        order.setAmendmentReason(reason);
+        order.setAmendedAt(LocalDateTime.now());
+        order.setAmendedBy(amendedBy);
+
+        List<TestResult> results = resultRepository.findByOrderIdOrderByDepartmentAscSortOrderAsc(orderId);
+        StringBuilder sb = new StringBuilder();
+        sb.append(order.getOrderNumber()).append("|v").append(newVersion).append("|");
+        for (TestResult r : results) {
+            sb.append(r.getParameterName()).append(":").append(r.getValueText()).append(";");
+        }
+        order.setReportHash(AuditService.computeSha256(sb.toString()));
+        orderRepository.save(order);
+
+        auditService.logAction(amendedBy, "REPORT_AMENDED", "ORDER", order.getOrderNumber(),
+                "Amended to Version " + newVersion + ". Clinical Reason: " + reason, null);
     }
 }

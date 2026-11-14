@@ -97,6 +97,34 @@ public class LabOrder {
     @Column(length = 500)
     private String clinicalNotes;
 
+    @Column(length = 64, unique = true)
+    private String verificationToken;
+
+    @Column(nullable = false)
+    private Integer reportVersion = 1;
+
+    @Column(nullable = false)
+    private boolean amended = false;
+
+    @Column(length = 500)
+    private String amendmentReason;
+
+    private LocalDateTime amendedAt;
+
+    @Column(length = 100)
+    private String amendedBy;
+
+    @Column(length = 64)
+    private String reportHash;
+
+    private LocalDateTime verifiedAt;
+
+    @Column(length = 100)
+    private String verifiedBy;
+
+    @Column(length = 150)
+    private String pathologistName = "Dr. S. K. Verma, MD (Path)";
+
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<OrderItem> items = new ArrayList<>();
 
@@ -321,5 +349,85 @@ public class LabOrder {
 
     public void setSamples(List<LabSample> samples) {
         this.samples = samples;
+    }
+
+    public String getVerificationToken() {
+        return verificationToken;
+    }
+
+    public void setVerificationToken(String verificationToken) {
+        this.verificationToken = verificationToken;
+    }
+
+    public Integer getReportVersion() {
+        return reportVersion;
+    }
+
+    public void setReportVersion(Integer reportVersion) {
+        this.reportVersion = reportVersion;
+    }
+
+    public boolean isAmended() {
+        return amended;
+    }
+
+    public void setAmended(boolean amended) {
+        this.amended = amended;
+    }
+
+    public String getAmendmentReason() {
+        return amendmentReason;
+    }
+
+    public void setAmendmentReason(String amendmentReason) {
+        this.amendmentReason = amendmentReason;
+    }
+
+    public LocalDateTime getAmendedAt() {
+        return amendedAt;
+    }
+
+    public void setAmendedAt(LocalDateTime amendedAt) {
+        this.amendedAt = amendedAt;
+    }
+
+    public String getAmendedBy() {
+        return amendedBy;
+    }
+
+    public void setAmendedBy(String amendedBy) {
+        this.amendedBy = amendedBy;
+    }
+
+    public String getReportHash() {
+        return reportHash;
+    }
+
+    public void setReportHash(String reportHash) {
+        this.reportHash = reportHash;
+    }
+
+    public LocalDateTime getVerifiedAt() {
+        return verifiedAt;
+    }
+
+    public void setVerifiedAt(LocalDateTime verifiedAt) {
+        this.verifiedAt = verifiedAt;
+    }
+
+    public String getVerifiedBy() {
+        return verifiedBy;
+    }
+
+    public void setVerifiedBy(String verifiedBy) {
+        this.verifiedBy = verifiedBy;
+    }
+
+    public String getPathologistName() {
+        return pathologistName;
+    }
+
+    public void setPathologistName(String pathologistName) {
+        this.pathologistName = pathologistName;
     }
 }

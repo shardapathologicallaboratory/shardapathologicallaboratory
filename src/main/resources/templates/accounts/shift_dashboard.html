@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head}"></head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col">
+
+    <header th:replace="~{fragments/layout :: header}"></header>
+    <nav th:replace="~{fragments/layout :: nav}"></nav>
+
+    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full">
+        <!-- Flash Messages -->
+        <div th:if="${successMessage}" class="mb-5 p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 flex items-center space-x-3 shadow-sm">
+            <i data-lucide="check-circle-2" class="w-5 h-5 text-emerald-600 flex-shrink-0"></i>
+            <span class="text-sm font-medium" th:text="${successMessage}">Success</span>
+        </div>
+        <div th:if="${errorMessage}" class="mb-5 p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 flex items-center space-x-3 shadow-sm">
+            <i data-lucide="alert-circle" class="w-5 h-5 text-rose-600 flex-shrink-0"></i>
+            <span class="text-sm font-medium" th:text="${errorMessage}">Error</span>
+        </div>
+
+        <!-- Header -->
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-6 border-b border-slate-200 gap-4">
+            <div>
+                <h1 class="text-2xl font-bold text-slate-900 tracking-tight flex items-center space-x-3">
+                    <span class="p-2 rounded-xl bg-clinical-50 text-clinical-700 border border-clinical-200">
+                        <i data-lucide="wallet" class="w-6 h-6"></i>
+                    </span>
+                    <span>Accounts &amp; Shift Cash Handover</span>
+                </h1>
+                <p class="text-sm text-slate-500 mt-1">Manage cash drawer floats, reconcile physical cash &amp; UPI collections, issue fee correction vouchers, and close shifts.</p>
+            </div>
+
+            <!-- New Fee Correction Action Button -->
+            <button type="button" onclick="openFeeAdjustmentModal()"
+                    class="inline-flex items-center px-4 py-2 bg-amber-600 text-white rounded-xl text-xs font-semibold hover:bg-amber-700 shadow-sm transition">
+                <i data-lucide="receipt" class="w-4 h-4 mr-1.5"></i>
+                <span>Issue Fee Correction Voucher</span>
+            </button>
+        </div>
+
+        <!-- Active Shift Section -->
+        <div class="mt-6">
+            <!-- If Active Shift Exists -->
+            <div th:if="${activeShift != null}" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center pb-5 border-b border-slate-100 gap-4">
+                    <div>
+                        <div class="flex items-center space-x-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                            <h2 class="text-lg font-bold text-slate-900" th:text="'Active Shift: ' + ${activeShift.sessionCode}">Active Shift</h2>
+                            <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">OPEN</span>
+                        </div>
+                        <p class="text-xs text-slate-500 mt-1" th:text="'Opened by ' + ${activeShift.user.fullName} + ' on ' + ${#temporals.format(activeShift.startTime, 'dd MMM yyyy, hh:mm a')}"></p>
+                    </div>
+
+                    <button type="button" onclick="openCloseShiftModal()"
+                            class="inline-flex items-center px-4 py-2 bg-rose-600 text-white rounded-xl text-xs font-semibold hover:bg-rose-700 shadow-sm transition">
+                        <i data-lucide="lock" class="w-4 h-4 mr-1.5"></i> Close Shift &amp; Reconcile Cash
+                    </button>
+                </div>
+
+                <!-- Cash & Collections Metric Grid -->
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mt-6">
+                    <div class="p-4 rounded-xl bg-slate-50 border border-slate-200/60">
+                        <span class="block text-[11px] font-bold text-slate-500 uppercase">Starting Cash Float</span>
+                        <span class="text-lg font-extrabold text-slate-900" th:text="'₹' + ${activeShift.openingCashFloat}">₹500.00</span>
+                        <span class="block text-[10px] text-slate-400 mt-1">Drawer change</span>
+                    </div>
+
+                    <div class="p-4 rounded-xl bg-emerald-50/50 border border-emerald-100">
+                        <span class="block text-[11px] font-bold text-emerald-800 uppercase">Total Cash Billed</span>
+                        <span class="text-lg font-extrabold text-emerald-700" th:text="'₹' + ${activeShift.totalCashBilled}">₹0.00</span>
+                        <span class="block text-[10px] text-emerald-600 mt-1">Physical Currency</span>
+                    </div>
+
+                    <div class="p-4 rounded-xl bg-blue-50/50 border border-blue-100">
+                        <span class="block text-[11px] font-bold text-blue-800 uppercase">Total UPI Billed</span>
+                        <span class="text-lg font-extrabold text-blue-700" th:text="'₹' + ${activeShift.totalUpiBilled}">₹0.00</span>
+                        <span class="block text-[10px] text-blue-600 mt-1">QR / Net Banking</span>
+                    </div>
+
+                    <div class="p-4 rounded-xl bg-rose-50/50 border border-rose-100">
+                        <span class="block text-[11px] font-bold text-rose-800 uppercase">Refunds Issued</span>
+                        <span class="text-lg font-extrabold text-rose-700" th:text="'₹' + ${activeShift.totalRefunds}">₹0.00</span>
+                        <span class="block text-[10px] text-rose-600 mt-1">Overcharge returns</span>
+                    </div>
+
+                    <div class="p-4 rounded-xl bg-clinical-50 border border-clinical-200 col-span-2 md:col-span-1">
+                        <span class="block text-[11px] font-bold text-clinical-800 uppercase">Expected in Cash Drawer</span>
+                        <span class="text-xl font-black text-clinical-900" th:text="'₹' + ${activeShift.expectedCashInDrawer}">₹500.00</span>
+                        <span class="block text-[10px] text-clinical-700 font-medium mt-1">Float + Cash - Refunds</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- If No Shift is Open -->
+            <div th:if="${activeShift == null}" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-8 text-center max-w-lg mx-auto">
+                <div class="w-14 h-14 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <i data-lucide="wallet-cards" class="w-8 h-8"></i>
+                </div>
+                <h2 class="text-lg font-bold text-slate-900">No Shift Currently Open</h2>
+                <p class="text-xs text-slate-500 mt-1">Open a shift session with your opening cash drawer float to begin billing orders.</p>
+
+                <form th:action="@{/accountant/shift/open}" method="post" class="mt-6 space-y-4">
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                    <div class="text-left">
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Opening Cash Drawer Float (₹)</label>
+                        <input type="number" step="1" name="openingFloat" value="500" required
+                               class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-clinical-500 bg-slate-50">
+                        <p class="text-[11px] text-slate-400 mt-1">Starting petty cash in reception cash drawer for giving change to patients.</p>
+                    </div>
+
+                    <button type="submit" class="w-full py-2.5 bg-clinical-600 hover:bg-clinical-700 text-white rounded-xl text-xs font-semibold shadow-sm flex items-center justify-center space-x-1.5">
+                        <i data-lucide="play" class="w-4 h-4"></i>
+                        <span>Start Shift Session</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Recent Fee Adjustments & Price Corrections Table -->
+        <div class="mt-10">
+            <div class="flex justify-between items-center mb-4">
+                <div>
+                    <h3 class="text-base font-bold text-slate-900 flex items-center space-x-2">
+                        <i data-lucide="receipt-text" class="w-4 h-4 text-amber-600"></i>
+                        <span>Fee Adjustment &amp; Refund Audit Vouchers</span>
+                    </h3>
+                    <p class="text-xs text-slate-500">Official audit vouchers issued for unlisted test price corrections, overcharge refunds, and supplementary payments.</p>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-100/75 border-b border-slate-200 text-[11px] font-bold text-slate-600 uppercase">
+                                <th class="py-3 px-4">Voucher #</th>
+                                <th class="py-3 px-4">Date &amp; Time</th>
+                                <th class="py-3 px-4">Order &amp; Patient</th>
+                                <th class="py-3 px-4">Type</th>
+                                <th class="py-3 px-4">Original &rarr; Corrected</th>
+                                <th class="py-3 px-4">Difference</th>
+                                <th class="py-3 px-4">Authorized By &amp; Reason</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 text-xs text-slate-700">
+                            <tr th:if="${#lists.isEmpty(adjustments)}">
+                                <td colspan="7" class="py-8 text-center text-slate-400">
+                                    No fee adjustments or refund vouchers issued yet.
+                                </td>
+                            </tr>
+
+                            <tr th:each="adj : ${adjustments}" class="hover:bg-slate-50">
+                                <td class="py-3 px-4 font-mono font-bold text-slate-900" th:text="${adj.voucherNumber}">ADJ-261114-1001</td>
+                                <td class="py-3 px-4 text-slate-500" th:text="${#temporals.format(adj.createdAt, 'dd MMM, hh:mm a')}">Date</td>
+                                <td class="py-3 px-4">
+                                    <div class="font-semibold text-slate-900" th:text="${adj.patient.fullName}">Patient</div>
+                                    <div class="text-[11px] font-mono text-slate-400" th:text="${adj.order.orderNumber}">ORD-26-00001</div>
+                                </td>
+                                <td class="py-3 px-4">
+                                    <span th:if="${adj.adjustmentType == 'REFUND_OVERCHARGE'}" class="px-2 py-0.5 rounded text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                                        Refund (Overcharge)
+                                    </span>
+                                    <span th:if="${adj.adjustmentType == 'SUPPLEMENT_UNDERCHARGE'}" class="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                        Supplementary Collection
+                                    </span>
+                                </td>
+                                <td class="py-3 px-4 font-mono">
+                                    <span class="line-through text-slate-400" th:text="'₹' + ${adj.originalAmount}">₹500</span>
+                                    <span class="font-bold text-slate-900 ml-1" th:text="'₹' + ${adj.correctedAmount}">₹350</span>
+                                </td>
+                                <td class="py-3 px-4 font-mono font-black"
+                                    th:classappend="${adj.adjustmentType == 'REFUND_OVERCHARGE'} ? 'text-rose-600' : 'text-emerald-600'"
+                                    th:text="${adj.adjustmentType == 'REFUND_OVERCHARGE' ? '-₹' + adj.differenceAmount : '+₹' + adj.differenceAmount}">
+                                    -₹150.00
+                                </td>
+                                <td class="py-3 px-4">
+                                    <div class="font-medium text-slate-800" th:text="${adj.authorizedBy}">Receptionist</div>
+                                    <div class="text-[11px] text-slate-500 italic" th:text="${adj.reason}">Unlisted test was charged ₹500, corrected to ₹350</div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Shift History Table -->
+        <div class="mt-10 mb-12">
+            <h3 class="text-base font-bold text-slate-900 mb-4 flex items-center space-x-2">
+                <i data-lucide="history" class="w-4 h-4 text-slate-500"></i>
+                <span>Past Shift Handover Records</span>
+            </h3>
+
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-100/75 border-b border-slate-200 text-[11px] font-bold text-slate-600 uppercase">
+                                <th class="py-3 px-4">Session Code</th>
+                                <th class="py-3 px-4">Staff</th>
+                                <th class="py-3 px-4">Start &rarr; End Time</th>
+                                <th class="py-3 px-4">Cash Billed</th>
+                                <th class="py-3 px-4">UPI Billed</th>
+                                <th class="py-3 px-4">Expected Cash</th>
+                                <th class="py-3 px-4">Actual Counted</th>
+                                <th class="py-3 px-4">Variance</th>
+                                <th class="py-3 px-4">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 text-xs text-slate-700">
+                            <tr th:if="${#lists.isEmpty(allShifts)}">
+                                <td colspan="9" class="py-8 text-center text-slate-400">No shifts recorded yet.</td>
+                            </tr>
+
+                            <tr th:each="s : ${allShifts}" class="hover:bg-slate-50">
+                                <td class="py-3 px-4 font-mono font-bold text-slate-900" th:text="${s.sessionCode}">SH-261114-1</td>
+                                <td class="py-3 px-4 font-semibold text-slate-800" th:text="${s.user.fullName}">Reception User</td>
+                                <td class="py-3 px-4 text-slate-500">
+                                    <div th:text="${#temporals.format(s.startTime, 'dd MMM, hh:mm a')}">Start</div>
+                                    <div th:if="${s.endTime != null}" class="text-[10px] text-slate-400" th:text="'to ' + ${#temporals.format(s.endTime, 'hh:mm a')}">End</div>
+                                </td>
+                                <td class="py-3 px-4 font-mono text-emerald-700 font-bold" th:text="'₹' + ${s.totalCashBilled}">₹0</td>
+                                <td class="py-3 px-4 font-mono text-blue-700 font-bold" th:text="'₹' + ${s.totalUpiBilled}">₹0</td>
+                                <td class="py-3 px-4 font-mono text-slate-800" th:text="'₹' + ${s.expectedCashInDrawer}">₹500</td>
+                                <td class="py-3 px-4 font-mono font-bold text-slate-900" th:text="${s.actualCashCounted != null ? '₹' + s.actualCashCounted : '-'}">₹500</td>
+                                <td class="py-3 px-4 font-mono font-bold">
+                                    <span th:if="${s.cashVariance != null && s.cashVariance.compareTo(T(java.math.BigDecimal).ZERO) == 0}" class="text-emerald-600">₹0.00 (Balanced)</span>
+                                    <span th:if="${s.cashVariance != null && s.cashVariance.compareTo(T(java.math.BigDecimal).ZERO) > 0}" class="text-blue-600" th:text="'+₹' + ${s.cashVariance} + ' (Over)'">+₹10</span>
+                                    <span th:if="${s.cashVariance != null && s.cashVariance.compareTo(T(java.math.BigDecimal).ZERO) < 0}" class="text-rose-600 font-black" th:text="${s.cashVariance} + ' (Short)'">-₹20</span>
+                                    <span th:if="${s.cashVariance == null}">-</span>
+                                </td>
+                                <td class="py-3 px-4">
+                                    <span th:if="${s.status == 'OPEN'}" class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">OPEN</span>
+                                    <span th:if="${s.status == 'CLOSED'}" class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">CLOSED</span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal: Close Shift & Count Cash -->
+    <div id="closeShiftModal" th:if="${activeShift != null}" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-md w-full p-6 animate-in fade-in duration-200">
+            <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+                <div class="flex items-center space-x-3">
+                    <div class="p-2 bg-rose-50 text-rose-600 rounded-xl">
+                        <i data-lucide="lock" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-slate-900">Close Shift &amp; Cash Reconciliation</h3>
+                        <p class="text-xs text-slate-500" th:text="${activeShift.sessionCode}">Session Code</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeCloseShiftModal()" class="text-slate-400 hover:text-slate-600">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <form th:action="@{/accountant/shift/close}" method="post" class="mt-4 space-y-4">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                <input type="hidden" name="shiftId" th:value="${activeShift.id}" />
+
+                <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs">
+                    <div class="flex justify-between py-1">
+                        <span class="text-slate-500">Starting Float:</span>
+                        <span class="font-mono font-bold text-slate-900" th:text="'₹' + ${activeShift.openingCashFloat}">₹500</span>
+                    </div>
+                    <div class="flex justify-between py-1">
+                        <span class="text-slate-500">+ Total Cash Billed:</span>
+                        <span class="font-mono font-bold text-emerald-700" th:text="'₹' + ${activeShift.totalCashBilled}">₹0</span>
+                    </div>
+                    <div class="flex justify-between py-1">
+                        <span class="text-slate-500">- Overcharge Refunds:</span>
+                        <span class="font-mono font-bold text-rose-600" th:text="'₹' + ${activeShift.totalRefunds}">₹0</span>
+                    </div>
+                    <div class="flex justify-between py-1 border-t border-slate-200 font-bold text-sm">
+                        <span class="text-clinical-800">Expected in Cash Drawer:</span>
+                        <span class="font-mono text-clinical-900" id="modalExpectedCash" th:text="'₹' + ${activeShift.expectedCashInDrawer}">₹500</span>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Physical Cash Counted in Drawer (₹) *</label>
+                    <input type="number" step="1" name="actualCash" id="actualCashInput" required
+                           th:value="${activeShift.expectedCashInDrawer}"
+                           class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm font-mono font-bold focus:outline-none focus:ring-2 focus:ring-clinical-500 bg-slate-50">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Handover Notes / Variance Explanation</label>
+                    <textarea name="closingNotes" rows="2" placeholder="e.g. Cash drawer counted and handed over to Accountant with ₹0 variance."
+                              class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-clinical-500 bg-slate-50"></textarea>
+                </div>
+
+                <div class="flex justify-end space-x-3 pt-4 border-t border-slate-100">
+                    <button type="button" onclick="closeCloseShiftModal()" class="px-4 py-2 border border-slate-300 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-50">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-semibold shadow-sm flex items-center space-x-1.5">
+                        <i data-lucide="check" class="w-4 h-4"></i>
+                        <span>Confirm Close &amp; Handover</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Issue Fee Correction Voucher -->
+    <div id="feeAdjustmentModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-lg w-full p-6 animate-in fade-in duration-200">
+            <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+                <div class="flex items-center space-x-3">
+                    <div class="p-2 bg-amber-50 text-amber-600 rounded-xl">
+                        <i data-lucide="receipt" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-slate-900">Issue Fee Correction Voucher</h3>
+                        <p class="text-xs text-slate-500">Correct mispriced or unlisted test amounts with official refund/supplement voucher</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeFeeAdjustmentModal()" class="text-slate-400 hover:text-slate-600">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <form th:action="@{/accountant/adjust-fee}" method="post" class="mt-4 space-y-4">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Order ID *</label>
+                    <input type="number" name="orderId" required placeholder="Enter Order ID (e.g. 1)"
+                           class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-clinical-500 bg-slate-50">
+                    <p class="text-[11px] text-slate-400 mt-1">Found on the patient receipt or from Find Patients / Reception dashboard.</p>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Adjustment Action *</label>
+                        <select name="adjustmentType" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-clinical-500 bg-slate-50">
+                            <option value="REFUND_OVERCHARGE">Refund (Overcharge)</option>
+                            <option value="SUPPLEMENT_UNDERCHARGE">Additional Collection (Undercharge)</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Payment Mode *</label>
+                        <select name="paymentMode" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-clinical-500 bg-slate-50">
+                            <option value="CASH">Cash</option>
+                            <option value="UPI">UPI</option>
+                            <option value="CARD">Card</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">New Corrected Total Amount (₹) *</label>
+                    <input type="number" step="0.5" name="correctedAmount" required placeholder="e.g. 350.00"
+                           class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm font-mono font-bold focus:outline-none focus:ring-2 focus:ring-clinical-500 bg-slate-50">
+                    <p class="text-[11px] text-slate-400 mt-1">If unlisted test was charged ₹500 and should have been ₹350, enter 350. The difference of ₹150 will be refunded.</p>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Correction Reason &amp; Clinical Justification *</label>
+                    <textarea name="reason" required rows="2" placeholder="e.g. Unlisted specialized assay misquoted at reception desk; corrected per Pathologist wholesale rate card."
+                              class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-clinical-500 bg-slate-50"></textarea>
+                </div>
+
+                <div class="flex justify-end space-x-3 pt-4 border-t border-slate-100">
+                    <button type="button" onclick="closeFeeAdjustmentModal()" class="px-4 py-2 border border-slate-300 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-50">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-semibold shadow-sm flex items-center space-x-1.5">
+                        <i data-lucide="check" class="w-4 h-4"></i>
+                        <span>Generate Voucher &amp; Adjust Cash</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function openCloseShiftModal() {
+            document.getElementById('closeShiftModal').classList.remove('hidden');
+        }
+        function closeCloseShiftModal() {
+            document.getElementById('closeShiftModal').classList.add('hidden');
+        }
+        function openFeeAdjustmentModal() {
+            document.getElementById('feeAdjustmentModal').classList.remove('hidden');
+        }
+        function closeFeeAdjustmentModal() {
+            document.getElementById('feeAdjustmentModal').classList.add('hidden');
+        }
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.lucide) {
+                lucide.createIcons();
+            }
+        });
+    </script>
+</body>
+</html>

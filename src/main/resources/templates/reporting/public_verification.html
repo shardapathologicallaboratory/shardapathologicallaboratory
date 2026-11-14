@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report Verification - LCMS Diagnostic Trust Engine</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col justify-between">
+
+    <!-- Top Banner -->
+    <header class="bg-white border-b border-slate-200 py-4 px-4 sm:px-6 shadow-xs">
+        <div class="max-w-2xl mx-auto flex items-center justify-between">
+            <div class="flex items-center space-x-2.5">
+                <div class="w-9 h-9 rounded-xl bg-teal-600 flex items-center justify-center text-white font-bold text-lg shadow-sm">
+                    <i data-lucide="shield-check" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <span class="font-bold text-slate-900 text-base">LCMS Quality Trust Engine</span>
+                    <span class="block text-[10px] font-semibold text-teal-700 uppercase tracking-widest">Public Verification Portal</span>
+                </div>
+            </div>
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5"></span> Live &amp; Authentic
+            </span>
+        </div>
+    </header>
+
+    <!-- Main Verification Card -->
+    <main class="flex-grow max-w-2xl mx-auto px-4 py-8 w-full">
+        <!-- VALID REPORT CARD -->
+        <div th:if="${isValid}" class="bg-white rounded-3xl shadow-xl border border-slate-200/80 overflow-hidden">
+            
+            <!-- Trust Header Banner -->
+            <div class="bg-gradient-to-r from-teal-600 to-emerald-600 p-6 text-white text-center">
+                <div class="w-16 h-16 mx-auto bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center mb-3 shadow-inner">
+                    <i data-lucide="badge-check" class="w-10 h-10 text-white"></i>
+                </div>
+                <h1 class="text-xl sm:text-2xl font-black tracking-tight">Genuine Diagnostic Report</h1>
+                <p class="text-xs text-teal-100 mt-1">This report is cryptographically authenticated and certified by LCMS Diagnostics.</p>
+            </div>
+
+            <!-- Superseded Alert if Amended -->
+            <div th:if="${order.amended}" class="bg-amber-500 p-3 text-white text-xs flex items-center justify-center space-x-2 font-medium">
+                <i data-lucide="alert-triangle" class="w-4 h-4 flex-shrink-0"></i>
+                <span>Notice: This report was clinically amended (v<span th:text="${order.reportVersion}">2</span>) on <span th:text="${#temporals.format(order.amendedAt, 'dd-MMM-yyyy')}">Date</span>.</span>
+            </div>
+
+            <div class="p-6 sm:p-8 space-y-6">
+                <!-- Diagnostic Lab Details -->
+                <div class="border-b border-slate-100 pb-5">
+                    <h2 class="text-base font-bold text-slate-900">LCMS Advanced Diagnostics &amp; Research Centre</h2>
+                    <p class="text-xs text-slate-500 mt-0.5">Plot 14, Health City, Ring Road &bull; Phone: +91 98765 43210</p>
+                    <p class="text-[11px] text-teal-700 font-semibold mt-0.5">NABL Accredited Laboratory &bull; Reg: MC-3184 &bull; ISO 15189:2022</p>
+                </div>
+
+                <!-- Verified Details Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                    <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200/60">
+                        <span class="block text-[10px] font-bold text-slate-400 uppercase">Accession / Order #</span>
+                        <span class="font-bold text-slate-900 font-mono text-sm" th:text="${order.orderNumber}">ORD-26-00001</span>
+                    </div>
+
+                    <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200/60">
+                        <span class="block text-[10px] font-bold text-slate-400 uppercase">Patient (Medical Privacy Masked)</span>
+                        <span class="font-bold text-slate-900 text-sm" th:text="${maskedName}">A*** K**** S****a</span>
+                    </div>
+
+                    <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200/60">
+                        <span class="block text-[10px] font-bold text-slate-400 uppercase">Age / Gender</span>
+                        <span class="font-medium text-slate-800" th:text="${patient.age + ' ' + patient.ageUnit + ' / ' + patient.gender}">35 Y / Male</span>
+                    </div>
+
+                    <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200/60">
+                        <span class="block text-[10px] font-bold text-slate-400 uppercase">Referring Clinician</span>
+                        <span class="font-medium text-slate-800" th:text="${order.doctor.name}">Dr. Self</span>
+                    </div>
+
+                    <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200/60">
+                        <span class="block text-[10px] font-bold text-slate-400 uppercase">Date of Collection</span>
+                        <span class="font-medium text-slate-800" th:text="${#temporals.format(order.orderTime, 'dd-MMM-yyyy, hh:mm a')}">14-Nov-2026</span>
+                    </div>
+
+                    <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200/60">
+                        <span class="block text-[10px] font-bold text-slate-400 uppercase">Verified On</span>
+                        <span class="font-medium text-slate-800" th:text="${order.verifiedAt != null ? #temporals.format(order.verifiedAt, 'dd-MMM-yyyy, hh:mm a') : 'Completed'}">14-Nov-2026</span>
+                    </div>
+                </div>
+
+                <!-- Signoff & Pathologist Authority -->
+                <div class="p-4 bg-teal-50/60 border border-teal-200 rounded-2xl flex items-center space-x-4">
+                    <div class="w-12 h-12 rounded-xl bg-teal-600 text-white flex items-center justify-center flex-shrink-0">
+                        <i data-lucide="user-check" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <div class="text-xs font-bold text-slate-900" th:text="${order.pathologistName}">Dr. S. K. Verma, MD (Pathology)</div>
+                        <p class="text-[11px] text-teal-800">Reg. No. MCI-45892 &bull; Authorized Consultant Pathologist</p>
+                        <p class="text-[10px] text-slate-500 mt-0.5">Digital Signoff Authenticated via Quality Trust Engine</p>
+                    </div>
+                </div>
+
+                <!-- Cryptographic SHA-256 Fingerprint -->
+                <div class="p-4 bg-slate-900 text-slate-100 rounded-2xl text-xs font-mono">
+                    <div class="flex items-center justify-between mb-1.5 text-slate-400 text-[10px] uppercase font-bold tracking-wider">
+                        <span class="flex items-center space-x-1">
+                            <i data-lucide="lock" class="w-3 h-3 text-emerald-400"></i>
+                            <span>Cryptographic Fingerprint</span>
+                        </span>
+                        <span class="text-emerald-400 font-sans font-semibold">100% Tamper Proof</span>
+                    </div>
+                    <div class="break-all text-[11px] text-teal-300" th:text="${order.reportHash}">e4a8f90b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f</div>
+                </div>
+
+                <!-- Privacy & NABL Compliance Notice -->
+                <p class="text-[11px] text-slate-400 text-center leading-relaxed">
+                    Per NABL and patient confidentiality standards, specific medical diagnostic values are not rendered on public QR lookup pages.
+                    To obtain a complete print of the clinical report, please present this verification token at the laboratory reception.
+                </p>
+            </div>
+        </div>
+
+        <!-- INVALID TOKEN CARD -->
+        <div th:if="${!isValid}" class="bg-white rounded-3xl shadow-xl border border-rose-200 p-8 text-center max-w-md mx-auto">
+            <div class="w-16 h-16 mx-auto bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center mb-4">
+                <i data-lucide="shield-alert" class="w-10 h-10"></i>
+            </div>
+            <h1 class="text-xl font-bold text-slate-900">Verification Unsuccessful</h1>
+            <p class="text-xs text-rose-600 font-semibold mt-2" th:text="${errorMessage}">Invalid or expired verification token.</p>
+            <p class="text-xs text-slate-500 mt-2">The scanned QR code or verification link does not correspond to an active certified report in the LCMS diagnostic registry.</p>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-200 py-6 text-center text-xs text-slate-400 bg-white">
+        <p>&copy; 2026 LCMS Pathology &amp; Diagnostic Management Systems &bull; Built for Small Diagnostic Centres</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.lucide) {
+                lucide.createIcons();
+            }
+        });
+    </script>
+</body>
+</html>

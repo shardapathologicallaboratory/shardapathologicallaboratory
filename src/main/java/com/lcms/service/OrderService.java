@@ -20,14 +20,19 @@ public class OrderService {
     private final LabSampleRepository sampleRepository;
     private final PatientService patientService;
     private final TestCatalogueService catalogueService;
+    private final ShiftService shiftService;
+    private final AuditService auditService;
     private final AtomicLong sampleSequence = new AtomicLong(1000L);
 
     public OrderService(LabOrderRepository orderRepository, LabSampleRepository sampleRepository,
-                        PatientService patientService, TestCatalogueService catalogueService) {
+                        PatientService patientService, TestCatalogueService catalogueService,
+                        ShiftService shiftService, AuditService auditService) {
         this.orderRepository = orderRepository;
         this.sampleRepository = sampleRepository;
         this.patientService = patientService;
         this.catalogueService = catalogueService;
+        this.shiftService = shiftService;
+        this.auditService = auditService;
     }
 
     public List<LabOrder> searchOrders(String query, LocalDate startDate, LocalDate endDate,
@@ -166,7 +171,18 @@ public class OrderService {
             order.addSample(sample);
         }
 
-        return orderRepository.save(order);
+        order.setVerificationToken(UUID.randomUUID().toString().replace("-", ""));
+        LabOrder saved = orderRepository.save(order);
+
+        // Record payment in active shift if payment was made
+        if (saved.getPaidAmount() != null && saved.getPaidAmount().compareTo(BigDecimal.ZERO) > 0) {
+            shiftService.recordPaymentToActiveShift(saved.getPaymentMode(), saved.getPaidAmount());
+        }
+
+        auditService.logAction(bookedBy, "ORDER_CREATED", "ORDER", saved.getOrderNumber(),
+                String.format("Patient: %s (%s), Amount: ₹%s via %s", patient.getFullName(), patient.getUhid(), saved.getPaidAmount(), saved.getPaymentMode()), null);
+
+        return saved;
     }
 
     @Transactional

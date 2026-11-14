@@ -15,8 +15,11 @@ import java.util.Optional;
 @Repository
 public interface LabOrderRepository extends JpaRepository<LabOrder, Long> {
     Optional<LabOrder> findByOrderNumber(String orderNumber);
+    Optional<LabOrder> findByVerificationToken(String verificationToken);
     List<LabOrder> findByPatientIdOrderByOrderDateDescOrderTimeDesc(Long patientId);
     List<LabOrder> findByOrderDateOrderByDailyTokenNumberAsc(LocalDate date);
+    List<LabOrder> findByStatusInOrderByOrderDateDescOrderTimeDesc(List<OrderStatus> statuses);
+    List<LabOrder> findTop100ByOrderByOrderDateDescOrderTimeDesc();
     
     long countByOrderDate(LocalDate date);
     long countByOrderDateAndSource(LocalDate date, PatientSource source);
