@@ -29,6 +29,17 @@
                 </div>
             </div>
 
+            <!-- Shift Auto-Start Notification Banner -->
+            <div th:if="${shiftNotification != null}" class="p-4 rounded-2xl bg-emerald-50 border border-emerald-300 text-emerald-950 shadow-sm flex items-center space-x-3">
+                <i data-lucide="clock-3" class="w-6 h-6 text-emerald-600 flex-shrink-0 animate-pulse"></i>
+                <div class="flex-1">
+                    <div class="font-bold text-xs uppercase tracking-wider text-emerald-700">Counter Shift Session Active</div>
+                    <div class="text-xs font-semibold text-emerald-900 mt-0.5" th:text="${shiftNotification}">
+                        Your counter shift session has started automatically. All registrations and collections are actively tracked.
+                    </div>
+                </div>
+            </div>
+
             <!-- Today's Volume Counters by Channel -->
             <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
@@ -68,13 +79,24 @@
                 </div>
             </div>
 
-            <!-- Orders Table for Today -->
+            <!-- Orders Table for Today with Live Test Status Tracker -->
             <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
-                    <h2 class="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center">
-                        <i data-lucide="calendar" class="w-4 h-4 mr-2 text-clinical-600"></i> Today's Registered Queue
-                    </h2>
-                    <span class="text-xs text-slate-400 font-mono" th:text="'Total: ' + ${todayOrders.size()}">Total: 0</span>
+                <div class="px-6 py-4 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                    <div>
+                        <h2 class="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center">
+                            <i data-lucide="activity" class="w-4 h-4 mr-2 text-clinical-600"></i> Live Patient Queue &amp; Test Status Tracker
+                        </h2>
+                        <p class="text-[11px] text-slate-400 mt-0.5">Real-time status of sample collection, laboratory bench testing, and pathologist verification</p>
+                    </div>
+                    <div class="flex items-center space-x-3 w-full sm:w-auto">
+                        <div class="relative w-full sm:w-64">
+                            <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5"></i>
+                            <input type="text" id="orderSearch" onkeyup="filterOrderTable()"
+                                   placeholder="Filter patient, UHID, or test..."
+                                   class="w-full pl-8 pr-3 py-1.5 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-clinical-500">
+                        </div>
+                        <span class="text-xs text-slate-400 font-mono whitespace-nowrap" th:text="'Total: ' + ${todayOrders.size()}">Total: 0</span>
+                    </div>
                 </div>
 
                 <div class="overflow-x-auto">
@@ -85,19 +107,19 @@
                                 <th class="py-3 px-4">Patient Name &amp; UHID</th>
                                 <th class="py-3 px-4">Channel / Centre</th>
                                 <th class="py-3 px-4">Doctor</th>
-                                <th class="py-3 px-4">Tests Booked</th>
+                                <th class="py-3 px-4">Tests Booked &amp; Live Test Stage</th>
                                 <th class="py-3 px-4">Billing Status</th>
-                                <th class="py-3 px-4">Order Status</th>
+                                <th class="py-3 px-4">Overall Status</th>
                                 <th class="py-3 px-4 text-right">Actions</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-slate-100 text-slate-700">
+                        <tbody id="orderTableBody" class="divide-y divide-slate-100 text-slate-700">
                             <tr th:if="${todayOrders.empty}">
                                 <td colspan="8" class="py-8 text-center text-slate-400 italic">
                                     No patients registered yet today. Click "+ Book New Patient" to register the first patient.
                                 </td>
                             </tr>
-                            <tr th:each="ord : ${todayOrders}" class="hover:bg-slate-50/70 transition">
+                            <tr th:each="ord : ${todayOrders}" class="order-row hover:bg-slate-50/70 transition">
                                 <td class="py-3 px-4">
                                     <div class="flex items-center space-x-1.5">
                                         <span class="px-2 py-0.5 rounded-md font-bold text-xs bg-slate-900 text-white"
@@ -124,13 +146,35 @@
                                 <td class="py-3 px-4">
                                     <span class="font-medium text-slate-800" th:text="${ord.doctor.name}">Dr. Name</span>
                                 </td>
-                                <td class="py-3 px-4 max-w-xs">
-                                    <div class="flex flex-wrap gap-1">
-                                        <span th:each="item : ${ord.items}"
-                                              class="px-1.5 py-0.5 rounded text-[10px] bg-slate-100 text-slate-700 font-medium border border-slate-200">
-                                            <span th:text="${item.vialType.emoji}">🟣</span>
-                                            <span th:text="${item.testName}">Test</span>
-                                        </span>
+                                <td class="py-3 px-4 max-w-sm">
+                                    <div class="space-y-1.5">
+                                        <div th:each="item : ${ord.items}" class="flex items-center justify-between text-[11px] bg-slate-50 p-1.5 rounded-lg border border-slate-100">
+                                            <div class="flex items-center space-x-1.5 truncate">
+                                                <span th:text="${item.vialType.emoji}">🟣</span>
+                                                <span class="font-medium text-slate-800" th:text="${item.testName}">CBC</span>
+                                            </div>
+                                            <!-- Per-test live status badge -->
+                                            <span th:if="${ord.status.name() == 'BOOKED'}"
+                                                  class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200 whitespace-nowrap">
+                                                ⏳ Awaiting Sample
+                                            </span>
+                                            <span th:if="${ord.status.name() == 'COLLECTED'}"
+                                                  class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-800 border border-blue-200 whitespace-nowrap">
+                                                💉 Sample Collected
+                                            </span>
+                                            <span th:if="${ord.status.name() == 'PROCESSING'}"
+                                                  class="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-50 text-purple-800 border border-purple-200 whitespace-nowrap">
+                                                🔬 In Testing
+                                            </span>
+                                            <span th:if="${ord.status.name() == 'VERIFIED' or ord.status.name() == 'PRINTED'}"
+                                                  class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 whitespace-nowrap">
+                                                📋 Results Ready
+                                            </span>
+                                            <span th:if="${ord.status.name() == 'DISPATCHED'}"
+                                                  class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200 whitespace-nowrap">
+                                                📦 Dispatched
+                                            </span>
+                                        </div>
                                     </div>
                                 </td>
                                 <td class="py-3 px-4">
@@ -167,6 +211,21 @@
                                 </td>
                             </tr>
                         </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Client Filter Script -->
+            <script>
+                function filterOrderTable() {
+                    const input = document.getElementById('orderSearch').value.toLowerCase();
+                    const rows = document.querySelectorAll('#orderTableBody tr.order-row');
+                    rows.forEach(row => {
+                        const text = row.innerText.toLowerCase();
+                        row.style.display = text.includes(input) ? '' : 'none';
+                    });
+                }
+            </script>
                     </table>
                 </div>
             </div>

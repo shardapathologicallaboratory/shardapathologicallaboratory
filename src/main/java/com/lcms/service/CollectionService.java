@@ -6,6 +6,7 @@ import com.lcms.model.OrderItem;
 import com.lcms.model.enums.Department;
 import com.lcms.model.enums.OrderStatus;
 import com.lcms.model.enums.SampleStatus;
+import com.lcms.model.enums.VialType;
 import com.lcms.repository.LabOrderRepository;
 import com.lcms.repository.LabSampleRepository;
 import org.springframework.stereotype.Service;
@@ -33,6 +34,10 @@ public class CollectionService {
         return sampleRepository.findByStatusOrderBySampleSequenceIdAsc(SampleStatus.PENDING_COLLECTION);
     }
 
+    public List<LabSample> getRecentlyCollectedSamples() {
+        return sampleRepository.findTop30ByStatusOrderByCollectedAtDesc(SampleStatus.COLLECTED);
+    }
+
     public List<LabSample> getRecollectionAlerts() {
         return sampleRepository.findRecollectionAlerts();
     }
@@ -43,9 +48,17 @@ public class CollectionService {
 
     @Transactional
     public LabSample markSampleCollected(Long sampleId, String collectedBy) {
+        return markSampleCollectedWithVial(sampleId, null, collectedBy);
+    }
+
+    @Transactional
+    public LabSample markSampleCollectedWithVial(Long sampleId, VialType selectedVial, String collectedBy) {
         LabSample sample = sampleRepository.findById(sampleId)
                 .orElseThrow(() -> new IllegalArgumentException("Sample not found: " + sampleId));
 
+        if (selectedVial != null) {
+            sample.setVialType(selectedVial);
+        }
         sample.setStatus(SampleStatus.COLLECTED);
         sample.setCollectedAt(LocalDateTime.now());
         sample.setCollectedBy(collectedBy);

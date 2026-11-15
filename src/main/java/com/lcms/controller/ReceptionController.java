@@ -3,12 +3,14 @@ package com.lcms.controller;
 import com.lcms.model.Doctor;
 import com.lcms.model.LabOrder;
 import com.lcms.model.Patient;
+import com.lcms.model.ShiftSession;
 import com.lcms.model.TestItem;
 import com.lcms.model.enums.*;
 import com.lcms.repository.DoctorRepository;
 import com.lcms.security.CustomUserDetails;
 import com.lcms.service.OrderService;
 import com.lcms.service.PatientService;
+import com.lcms.service.ShiftService;
 import com.lcms.service.TestCatalogueService;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -31,13 +33,16 @@ public class ReceptionController {
     private final OrderService orderService;
     private final TestCatalogueService catalogueService;
     private final DoctorRepository doctorRepository;
+    private final ShiftService shiftService;
 
     public ReceptionController(PatientService patientService, OrderService orderService,
-                               TestCatalogueService catalogueService, DoctorRepository doctorRepository) {
+                               TestCatalogueService catalogueService, DoctorRepository doctorRepository,
+                               ShiftService shiftService) {
         this.patientService = patientService;
         this.orderService = orderService;
         this.catalogueService = catalogueService;
         this.doctorRepository = doctorRepository;
+        this.shiftService = shiftService;
     }
 
     @GetMapping
@@ -136,6 +141,15 @@ public class ReceptionController {
                 throw new IllegalArgumentException("Please select at least one test to book an order.");
             }
 
+            // Auto-start Reception Shift if not already open for this user
+            String autoShiftStartedMsg = null;
+            if (userDetails != null && userDetails.getUser() != null) {
+                if (shiftService.getCurrentShift(userDetails.getUser().getId()).isEmpty()) {
+                    ShiftSession newShift = shiftService.openShift(userDetails.getUser(), BigDecimal.ZERO);
+                    autoShiftStartedMsg = "Shift #" + newShift.getSessionCode() + " has automatically started for your counter! All billings and receipts are actively tracked under your name.";
+                }
+            }
+
             LabOrder order = orderService.createOrder(
                     patient.getId(), doctor, source, centreCode,
                     selectedTestIds, customTests,
@@ -143,8 +157,12 @@ public class ReceptionController {
                     userDetails.getFullName(), clinicalNotes
             );
 
+            if (autoShiftStartedMsg != null) {
+                redirectAttributes.addFlashAttribute("shiftNotification", autoShiftStartedMsg);
+            }
+
             redirectAttributes.addFlashAttribute("successMessage",
-                    "Order created successfully! Token #" + order.getDailyTokenNumber() + " | Order ID: " + order.getOrderNumber() +
+                    "Patient booked successfully! Token #" + order.getDailyTokenNumber() + " | Order ID: " + order.getOrderNumber() +
                     " (" + order.getSamples().size() + " sample vials queued for phlebotomy)");
 
             return "redirect:/reception";

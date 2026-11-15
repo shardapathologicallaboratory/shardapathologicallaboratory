@@ -127,7 +127,7 @@
                     <span>Reception &amp; Billing</span>
                 </a>
 
-                <a sec:authorize="hasAnyRole('ADMIN', 'COLLECTION', 'RECEPTION')" href="/collection" 
+                <a sec:authorize="hasAnyRole('ADMIN', 'COLLECTION')" href="/collection" 
                    class="px-3 py-1.5 rounded-lg text-slate-700 hover:bg-slate-100 flex items-center space-x-1.5">
                     <i data-lucide="syringe" class="w-4 h-4 text-slate-500"></i>
                     <span>Phlebotomy (Collection)</span>
@@ -139,7 +139,7 @@
                     <span>Machine Worksheets</span>
                 </a>
 
-                <a sec:authorize="hasAnyRole('ADMIN', 'REPORTING', 'RECEPTION', 'ACCOUNTANT')" href="/reporting" 
+                <a sec:authorize="hasAnyRole('ADMIN', 'REPORTING')" href="/reporting" 
                    class="px-3 py-1.5 rounded-lg text-slate-700 hover:bg-slate-100 flex items-center space-x-1.5">
                     <i data-lucide="printer" class="w-4 h-4 text-slate-500"></i>
                     <span>Reporting Desk</span>

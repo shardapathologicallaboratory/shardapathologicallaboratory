@@ -17,6 +17,7 @@ public interface LabSampleRepository extends JpaRepository<LabSample, Long> {
     Optional<LabSample> findBySampleSequenceId(Long sampleSequenceId);
     Optional<LabSample> findByBarcode(String barcode);
     List<LabSample> findByStatusOrderBySampleSequenceIdAsc(SampleStatus status);
+    List<LabSample> findTop30ByStatusOrderByCollectedAtDesc(SampleStatus status);
     List<LabSample> findByDepartmentAndStatus(Department department, SampleStatus status);
     List<LabSample> findByOrderId(Long orderId);
 

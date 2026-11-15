@@ -25,7 +25,7 @@ import java.util.stream.Collectors;
 
 @Controller
 @RequestMapping("/collection")
-@PreAuthorize("hasAnyRole('ADMIN', 'COLLECTION', 'RECEPTION')")
+@PreAuthorize("hasAnyRole('ADMIN', 'COLLECTION')")
 public class CollectionController {
 
     private final CollectionService collectionService;
@@ -41,13 +41,34 @@ public class CollectionController {
     @GetMapping
     public String collectionDashboard(Model model) {
         List<LabSample> pendingSamples = collectionService.getPendingSamples();
+        List<LabSample> recentlyCollected = collectionService.getRecentlyCollectedSamples();
         List<LabSample> recollectionAlerts = collectionService.getRecollectionAlerts();
 
         model.addAttribute("pendingSamples", pendingSamples);
+        model.addAttribute("recentlyCollected", recentlyCollected);
         model.addAttribute("recollectionAlerts", recollectionAlerts);
         model.addAttribute("departments", Department.values());
+        model.addAttribute("vialTypes", com.lcms.model.enums.VialType.values());
 
         return "collection/dashboard";
+    }
+
+    @PostMapping("/samples/{id}/select-vial-and-collect")
+    public String selectVialAndCollect(
+            @PathVariable("id") Long id,
+            @RequestParam(value = "vialType", required = false) com.lcms.model.enums.VialType vialType,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            RedirectAttributes redirectAttributes) {
+
+        try {
+            LabSample sample = collectionService.markSampleCollectedWithVial(id, vialType, userDetails.getFullName());
+            redirectAttributes.addFlashAttribute("successMessage",
+                    "Vial confirmed (" + sample.getVialType().getDisplayName() + ") and Sample #" + sample.getSampleSequenceId() + " marked as COLLECTED!");
+            return "redirect:/collection/samples/" + sample.getId() + "/barcode";
+        } catch (Exception ex) {
+            redirectAttributes.addFlashAttribute("errorMessage", ex.getMessage());
+            return "redirect:/collection";
+        }
     }
 
     @PostMapping("/samples/{id}/collect")
