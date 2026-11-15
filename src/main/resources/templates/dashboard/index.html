@@ -25,14 +25,34 @@
                         </p>
                     </div>
 
-                    <!-- Department Assignment Badges -->
+                    <!-- Department / Desk Scope Badges -->
                     <div class="flex flex-col items-start sm:items-end">
-                        <span class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-1">Assigned Departments</span>
+                        <span class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-1">Work Desk / Scope</span>
                         <div class="flex flex-wrap gap-1.5 justify-end">
-                            <span th:if="${currentUser.allowedDepartments.empty}" class="px-2.5 py-1 rounded-lg text-xs bg-white/10 text-slate-200 border border-white/10">
-                                Global / Administrative
+                            <span th:if="${currentUser.role.name() == 'ROLE_RECEPTION'}" class="px-2.5 py-1 rounded-lg text-xs bg-white/10 text-teal-200 border border-white/10 flex items-center space-x-1">
+                                <span>🛎️</span>
+                                <span>Front Desk, Registration &amp; Billing</span>
                             </span>
-                            <span th:each="dept : ${currentUser.allowedDepartments}"
+                            <span th:if="${currentUser.role.name() == 'ROLE_COLLECTION'}" class="px-2.5 py-1 rounded-lg text-xs bg-white/10 text-teal-200 border border-white/10 flex items-center space-x-1">
+                                <span>💉</span>
+                                <span>Phlebotomy &amp; Sample Collection</span>
+                            </span>
+                            <span th:if="${currentUser.role.name() == 'ROLE_REPORTING'}" class="px-2.5 py-1 rounded-lg text-xs bg-white/10 text-teal-200 border border-white/10 flex items-center space-x-1">
+                                <span>🖨️</span>
+                                <span>Report Delivery &amp; Dispatch Desk</span>
+                            </span>
+                            <span th:if="${currentUser.role.name() == 'ROLE_ACCOUNTANT'}" class="px-2.5 py-1 rounded-lg text-xs bg-white/10 text-teal-200 border border-white/10 flex items-center space-x-1">
+                                <span>💼</span>
+                                <span>Accounts &amp; Cash Counter</span>
+                            </span>
+                            <span th:if="${currentUser.role.name() == 'ROLE_ADMIN'}" class="px-2.5 py-1 rounded-lg text-xs bg-white/10 text-teal-200 border border-white/10 flex items-center space-x-1">
+                                <span>⭐</span>
+                                <span>Lab Director (All Departments)</span>
+                            </span>
+                            <span th:if="${currentUser.role.name() == 'ROLE_TECHNICIAN' and currentUser.allowedDepartments.empty}" class="px-2.5 py-1 rounded-lg text-xs bg-white/10 text-slate-200 border border-white/10">
+                                All Lab Benches
+                            </span>
+                            <span th:if="${currentUser.role.name() == 'ROLE_TECHNICIAN'}" th:each="dept : ${currentUser.allowedDepartments}"
                                   class="px-2.5 py-1 rounded-lg text-xs bg-teal-500/20 text-teal-200 border border-teal-500/30 flex items-center space-x-1">
                                 <span th:text="${dept.icon}">icon</span>
                                 <span th:text="${dept.displayName}">Department</span>
