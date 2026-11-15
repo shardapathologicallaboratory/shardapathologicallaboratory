@@ -114,10 +114,10 @@
                         <div>
                             <label class="block font-semibold text-slate-700 mb-1">Mobile Number *</label>
                             <input type="text" name="phone" required
-                                   th:value="${existingPatient != null ? existingPatient.phone : ''}"
-                                   th:readonly="${existingPatient != null}"
-                                   placeholder="10-digit mobile"
-                                   class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-clinical-600">
+                                    th:value="${existingPatient != null ? existingPatient.phone : ''}"
+                                    th:readonly="${existingPatient != null}"
+                                    placeholder="10-digit mobile"
+                                    class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-clinical-600">
                         </div>
 
                         <!-- Blood Group -->
@@ -141,10 +141,10 @@
                         <div class="sm:col-span-2">
                             <label class="block font-semibold text-slate-700 mb-1">Residential Address / City</label>
                             <input type="text" name="address"
-                                   th:value="${existingPatient != null ? existingPatient.address : ''}"
-                                   th:readonly="${existingPatient != null}"
-                                   placeholder="Street, Colony, Town"
-                                   class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-clinical-600">
+                                    th:value="${existingPatient != null ? existingPatient.address : ''}"
+                                    th:readonly="${existingPatient != null}"
+                                    placeholder="Street, Colony, Town"
+                                    class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-clinical-600">
                         </div>
                     </div>
                 </div>
@@ -171,8 +171,8 @@
                         <div>
                             <label class="block font-semibold text-slate-700 mb-1">Centre / Partner Code *</label>
                             <input type="text" name="centreCode" id="centreCodeInput" value="MAIN" required
-                                   class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-clinical-600"
-                                   placeholder="e.g. MAIN, DLT-22, B2B-METRO">
+                                    class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-clinical-600"
+                                    placeholder="e.g. MAIN, DLT-22, B2B-METRO">
                         </div>
 
                         <!-- Referring Doctor -->
@@ -195,23 +195,68 @@
                 </div>
 
                 <!-- 3. Test Selection & Rate Card Catalogue Grid -->
-                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm relative">
                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4 pb-2 border-b border-slate-100">
                         <div>
                             <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center">
-                                <i data-lucide="test-tubes" class="w-4 h-4 mr-2 text-clinical-600"></i> 3. Test Catalogue &amp; Packages
+                                <i data-lucide="test-tubes" class="w-4 h-4 mr-2 text-clinical-600"></i> 3. Test Catalogue &amp; Ordering
                             </h2>
-                            <p class="text-[11px] text-slate-400">Prices automatically reflect the selected channel rate card</p>
+                            <p class="text-[11px] text-slate-400">Search tests below; prices automatically reflect the selected channel rate card</p>
                         </div>
 
                         <div class="flex items-center space-x-2">
-                            <input type="text" id="testFilter" onkeyup="filterTests()" placeholder="Quick filter tests..."
-                                   class="px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-xl text-xs outline-none focus:ring-2 focus:ring-clinical-600">
                             <!-- Quick Add Unlisted Custom Test (Req from Receptionist) -->
                             <button type="button" onclick="document.getElementById('customTestModal').classList.remove('hidden')"
-                                    class="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white font-semibold rounded-xl text-xs transition shadow-sm">
-                                + Add Unlisted Test
+                                    class="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white font-semibold rounded-xl text-xs transition shadow-sm flex items-center space-x-1">
+                                <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
+                                <span>+ Add Unlisted Test</span>
                             </button>
+                        </div>
+                    </div>
+
+                    <!-- Prominent Autocomplete Search Input with Floating Hover Dropdown -->
+                    <div class="relative w-full mb-5">
+                        <label class="block font-semibold text-slate-700 text-xs mb-1">
+                            Search Tests (Type letters to view matching catalogue tests below) *
+                        </label>
+                        <div class="relative">
+                            <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5"></i>
+                            <input type="text" id="testSearchInput" autocomplete="off"
+                                   placeholder="Type test name or code (e.g. 't', 'cbc', 'thyroid', 'widal', 'lft', 'kft')..."
+                                   oninput="onTestSearchInput(this.value)"
+                                   onfocus="onTestSearchFocus()"
+                                   onkeydown="onTestSearchKeydown(event)"
+                                   class="w-full pl-10 pr-10 py-3 bg-slate-50 hover:bg-white focus:bg-white border-2 border-slate-300 focus:border-teal-500 rounded-2xl text-xs font-semibold outline-none focus:ring-4 focus:ring-teal-500/10 shadow-sm transition">
+                            <button type="button" id="clearTestSearchBtn" onclick="clearTestSearch()" class="hidden absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-600 transition">
+                                <i data-lucide="x-circle" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+
+                        <!-- Floating Hover Dropdown Menu -->
+                        <div id="testDropdown"
+                             class="hidden absolute left-0 right-0 top-full mt-1.5 bg-white rounded-2xl shadow-2xl border border-slate-200 z-50 max-h-80 overflow-y-auto divide-y divide-slate-100">
+                             <!-- Dynamically populated via JavaScript -->
+                        </div>
+                    </div>
+
+                    <!-- Selected Tests Chips / Summary List -->
+                    <div class="mb-5 bg-slate-50/80 rounded-2xl border border-slate-200 p-4">
+                        <div class="flex justify-between items-center mb-2 pb-1.5 border-b border-slate-200">
+                            <span class="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center">
+                                <i data-lucide="check-circle-2" class="w-4 h-4 mr-1.5 text-teal-600"></i>
+                                Selected Tests (<span id="selectedTestsCount" class="text-teal-700">0</span>)
+                            </span>
+                            <span class="text-xs font-mono font-bold text-teal-800" id="selectedTestsSubtotal">₹ 0.00</span>
+                        </div>
+
+                        <!-- Empty state notice -->
+                        <div id="emptySelectedTestsNotice" class="text-xs text-slate-400 italic py-2 text-center">
+                            No tests added yet. Type in the search box above (e.g., 't', 'cbc') to quickly find and select tests.
+                        </div>
+
+                        <!-- Selected items list -->
+                        <div id="selectedTestsList" class="space-y-1.5 hidden">
+                            <!-- Rendered dynamically -->
                         </div>
                     </div>
 
@@ -233,29 +278,47 @@
                     <input type="hidden" name="customVialType" id="customVialType">
                     <input type="hidden" name="customPrice" id="customPrice" value="0">
 
-                    <!-- Test Checkboxes Grid -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-h-96 overflow-y-auto p-1" id="testGrid">
-                        <div th:each="t : ${tests}" 
-                             class="test-card p-3 rounded-xl border border-slate-200 hover:border-teal-400 hover:bg-teal-50/20 transition flex items-start space-x-3 cursor-pointer"
-                             th:attr="data-name=${t.name.toLowerCase() + ' ' + t.code.toLowerCase()},
-                                      data-retail=${t.retailPrice},
-                                      data-b2b=${t.b2bPrice},
-                                      data-cc=${t.collectionCentrePrice}">
-                            <input type="checkbox" name="selectedTestIds" th:value="${t.id}"
-                                   onchange="calculateTotal()"
-                                   class="mt-1 rounded border-slate-300 text-clinical-600 focus:ring-clinical-500 cursor-pointer">
-                            <div class="flex-1">
-                                <div class="flex justify-between items-start">
-                                    <span class="font-bold text-slate-800 text-xs" th:text="${t.name}">Test Name</span>
-                                    <span class="font-mono font-bold text-slate-900 text-xs test-price-display" th:text="'₹ ' + ${t.retailPrice}">₹ 0</span>
-                                </div>
-                                <div class="flex items-center space-x-2 mt-1">
-                                    <span class="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-600 border border-slate-200"
-                                          th:text="${t.department.displayName}">Dept</span>
-                                    <span class="text-[10px] text-slate-500 flex items-center space-x-1">
-                                        <span th:text="${t.defaultVial.emoji}">🟣</span>
-                                        <span th:text="${t.defaultVial.displayName}">Vial</span>
-                                    </span>
+                    <!-- Expandable Full Test Catalogue Grid -->
+                    <div class="border-t border-slate-100 pt-3">
+                        <div class="flex justify-between items-center mb-2">
+                            <button type="button" onclick="toggleTestGrid()" class="text-xs font-bold text-slate-600 hover:text-teal-700 flex items-center space-x-1.5 transition">
+                                <i data-lucide="layout-grid" class="w-3.5 h-3.5"></i>
+                                <span id="toggleGridBtnText">Browse Full Catalogue Grid (105 Tests) ▼</span>
+                            </button>
+                            <input type="text" id="testFilter" onkeyup="filterTests()" placeholder="Filter grid..."
+                                   class="px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-lg text-[11px] outline-none focus:ring-1 focus:ring-teal-500">
+                        </div>
+
+                        <!-- Test Checkboxes Grid (Synched with Autocomplete) -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-h-80 overflow-y-auto p-1 hidden" id="testGrid">
+                            <div th:each="t : ${tests}" 
+                                 class="test-card p-3 rounded-xl border border-slate-200 hover:border-teal-400 hover:bg-teal-50/20 transition flex items-start space-x-3 cursor-pointer"
+                                 th:attr="data-id=${t.id},
+                                          data-code=${t.code},
+                                          data-name=${t.name},
+                                          data-search=${t.name.toLowerCase() + ' ' + t.code.toLowerCase() + ' ' + t.department.displayName.toLowerCase()},
+                                          data-dept=${t.department.displayName},
+                                          data-vial-emoji=${t.defaultVial.emoji},
+                                          data-vial-name=${t.defaultVial.displayName},
+                                          data-retail=${t.retailPrice},
+                                          data-b2b=${t.b2bPrice},
+                                          data-cc=${t.collectionCentrePrice}">
+                                <input type="checkbox" name="selectedTestIds" th:value="${t.id}" th:id="'chk_' + ${t.id}"
+                                       onchange="calculateTotal()"
+                                       class="mt-1 rounded border-slate-300 text-clinical-600 focus:ring-clinical-500 cursor-pointer">
+                                <div class="flex-1" th:attr="onclick='toggleCheckboxFromCard(' + ${t.id} + ')'">
+                                    <div class="flex justify-between items-start">
+                                        <span class="font-bold text-slate-800 text-xs" th:text="${t.name}">Test Name</span>
+                                        <span class="font-mono font-bold text-slate-900 text-xs test-price-display" th:text="'₹ ' + ${t.retailPrice}">₹ 0</span>
+                                    </div>
+                                    <div class="flex items-center space-x-2 mt-1">
+                                        <span class="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-600 border border-slate-200"
+                                              th:text="${t.department.displayName}">Dept</span>
+                                        <span class="text-[10px] text-slate-500 flex items-center space-x-1">
+                                            <span th:text="${t.defaultVial.emoji}">🟣</span>
+                                            <span th:text="${t.defaultVial.displayName}">Vial</span>
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -430,8 +493,295 @@
         </div>
     </div>
 
-    <!-- Interactive Script for Rate Cards, Dynamic Math & Custom Tests -->
+    <!-- Interactive Script for Autocomplete, Hover Dropdown, Rate Cards & Dynamic Math -->
     <script>
+        let allTests = [];
+        let highlightedDropdownIndex = -1;
+
+        function initTestCatalogueData() {
+            allTests = [];
+            document.querySelectorAll('.test-card').forEach(card => {
+                allTests.push({
+                    id: card.getAttribute('data-id'),
+                    code: card.getAttribute('data-code'),
+                    name: card.getAttribute('data-name'),
+                    search: card.getAttribute('data-search') || '',
+                    dept: card.getAttribute('data-dept'),
+                    vialEmoji: card.getAttribute('data-vial-emoji') || '🧪',
+                    vialName: card.getAttribute('data-vial-name') || 'Vial',
+                    retail: parseFloat(card.getAttribute('data-retail')) || 0,
+                    b2b: parseFloat(card.getAttribute('data-b2b')) || 0,
+                    cc: parseFloat(card.getAttribute('data-cc')) || 0,
+                    checkbox: card.querySelector('input[type="checkbox"]')
+                });
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            initTestCatalogueData();
+            calculateTotal();
+        });
+
+        // Autocomplete Search & Hover Dropdown
+        function onTestSearchInput(query) {
+            if (allTests.length === 0) initTestCatalogueData();
+            const q = query.trim().toLowerCase();
+            const dropdown = document.getElementById('testDropdown');
+            const clearBtn = document.getElementById('clearTestSearchBtn');
+            highlightedDropdownIndex = -1;
+
+            if (q.length > 0) {
+                clearBtn.classList.remove('hidden');
+            } else {
+                clearBtn.classList.add('hidden');
+                dropdown.classList.add('hidden');
+                dropdown.innerHTML = '';
+                return;
+            }
+
+            const src = document.getElementById('sourceSelect').value;
+            // Match anywhere in test name, code, or department
+            const matches = allTests.filter(t => t.search.includes(q) || t.name.toLowerCase().includes(q) || t.code.toLowerCase().includes(q));
+
+            if (matches.length === 0) {
+                dropdown.innerHTML = `
+                    <div class="p-4 text-center text-xs text-slate-500">
+                        No tests found matching "<span class="font-bold text-slate-800">${escapeHtml(query)}</span>".
+                        <div class="mt-2">
+                            <button type="button" onclick="openCustomTestWithName('${escapeHtml(query)}')" class="text-amber-600 hover:text-amber-700 font-bold underline">
+                                + Add "${escapeHtml(query)}" as Unlisted Custom Test
+                            </button>
+                        </div>
+                    </div>
+                `;
+                dropdown.classList.remove('hidden');
+                return;
+            }
+
+            let html = '';
+            matches.slice(0, 40).forEach((t, idx) => {
+                const isChecked = t.checkbox && t.checkbox.checked;
+                let price = t.retail;
+                if (src === 'B2B') price = t.b2b;
+                else if (src === 'COLLECTION_CENTRE') price = t.cc;
+
+                const highlightedName = highlightMatch(t.name, q);
+
+                html += `
+                    <div class="test-dropdown-item px-4 py-2.5 hover:bg-teal-50 transition flex items-center justify-between cursor-pointer ${isChecked ? 'bg-teal-50/40' : ''}"
+                         data-test-id="${t.id}" data-index="${idx}" onclick="selectTestFromDropdown('${t.id}')">
+                        <div class="flex items-center space-x-2.5 flex-1 min-w-0 pr-3">
+                            <span class="text-base">${t.vialEmoji}</span>
+                            <div class="truncate">
+                                <div class="text-xs font-bold text-slate-900 truncate">${highlightedName}</div>
+                                <div class="text-[10px] text-slate-400 flex items-center space-x-1.5 mt-0.5">
+                                    <span class="px-1.5 py-0.5 bg-slate-100 rounded text-slate-600 font-medium">${t.dept}</span>
+                                    <span>•</span>
+                                    <span>${t.vialName}</span>
+                                    <span>•</span>
+                                    <span class="font-mono text-slate-500">${t.code}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-2.5">
+                            <span class="font-mono font-bold text-xs ${isChecked ? 'text-teal-700' : 'text-slate-900'}">₹ ${price.toFixed(2)}</span>
+                            <button type="button" class="px-2.5 py-1 rounded-lg text-xs font-bold transition ${isChecked ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-teal-600 hover:text-white'}">
+                                ${isChecked ? '✓ Added' : '+ Add'}
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            if (matches.length > 40) {
+                html += `
+                    <div class="px-4 py-2 text-center text-[11px] text-slate-400 bg-slate-50">
+                        Showing top 40 of ${matches.length} matches. Type more letters to refine.
+                    </div>
+                `;
+            }
+
+            dropdown.innerHTML = html;
+            dropdown.classList.remove('hidden');
+        }
+
+        function onTestSearchFocus() {
+            const query = document.getElementById('testSearchInput').value;
+            if (query.trim().length > 0) {
+                onTestSearchInput(query);
+            }
+        }
+
+        function onTestSearchKeydown(e) {
+            const dropdown = document.getElementById('testDropdown');
+            if (dropdown.classList.contains('hidden')) return;
+
+            const items = dropdown.querySelectorAll('.test-dropdown-item');
+            if (items.length === 0) return;
+
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                highlightedDropdownIndex = (highlightedDropdownIndex + 1) % items.length;
+                updateDropdownHighlight(items);
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                highlightedDropdownIndex = (highlightedDropdownIndex - 1 + items.length) % items.length;
+                updateDropdownHighlight(items);
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                if (highlightedDropdownIndex >= 0 && highlightedDropdownIndex < items.length) {
+                    items[highlightedDropdownIndex].click();
+                } else if (items.length > 0) {
+                    items[0].click();
+                }
+            } else if (e.key === 'Escape') {
+                dropdown.classList.add('hidden');
+            }
+        }
+
+        function updateDropdownHighlight(items) {
+            items.forEach((item, idx) => {
+                if (idx === highlightedDropdownIndex) {
+                    item.classList.add('bg-teal-100/60');
+                    item.scrollIntoView({ block: 'nearest' });
+                } else {
+                    item.classList.remove('bg-teal-100/60');
+                }
+            });
+        }
+
+        function selectTestFromDropdown(testId) {
+            const cb = document.getElementById('chk_' + testId);
+            if (cb) {
+                cb.checked = !cb.checked;
+                calculateTotal();
+                // Refresh dropdown UI so '+ Add' switches to '✓ Added' or vice versa
+                const query = document.getElementById('testSearchInput').value;
+                if (query.trim().length > 0) {
+                    onTestSearchInput(query);
+                }
+            }
+            // Keep search input focused for rapid multi-test booking
+            document.getElementById('testSearchInput').focus();
+        }
+
+        function toggleCheckboxFromCard(testId) {
+            const cb = document.getElementById('chk_' + testId);
+            if (cb) {
+                cb.checked = !cb.checked;
+                calculateTotal();
+            }
+        }
+
+        function removeSelectedTest(testId) {
+            const cb = document.getElementById('chk_' + testId);
+            if (cb) {
+                cb.checked = false;
+                calculateTotal();
+                const query = document.getElementById('testSearchInput').value;
+                if (query.trim().length > 0) {
+                    onTestSearchInput(query);
+                }
+            }
+        }
+
+        function clearTestSearch() {
+            const input = document.getElementById('testSearchInput');
+            input.value = '';
+            document.getElementById('testDropdown').classList.add('hidden');
+            document.getElementById('clearTestSearchBtn').classList.add('hidden');
+            input.focus();
+        }
+
+        function highlightMatch(text, query) {
+            if (!query) return text;
+            const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+            return text.replace(regex, '<mark class="bg-amber-100 text-amber-900 font-bold px-0.5 rounded">$1</mark>');
+        }
+
+        function escapeHtml(str) {
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        function openCustomTestWithName(name) {
+            document.getElementById('modalCustomName').value = name;
+            document.getElementById('testDropdown').classList.add('hidden');
+            document.getElementById('customTestModal').classList.remove('hidden');
+        }
+
+        // Toggle Expandable Full Grid
+        function toggleTestGrid() {
+            const grid = document.getElementById('testGrid');
+            const btnText = document.getElementById('toggleGridBtnText');
+            if (grid.classList.contains('hidden')) {
+                grid.classList.remove('hidden');
+                btnText.innerText = 'Hide Test Grid ▲';
+            } else {
+                grid.classList.add('hidden');
+                btnText.innerText = 'Browse Full Catalogue Grid (105 Tests) ▼';
+            }
+        }
+
+        // Update Selected Tests Chips/List
+        function updateSelectedTestsView() {
+            const container = document.getElementById('selectedTestsList');
+            const emptyNotice = document.getElementById('emptySelectedTestsNotice');
+            const countBadge = document.getElementById('selectedTestsCount');
+            const subtotalDisplay = document.getElementById('selectedTestsSubtotal');
+            const src = document.getElementById('sourceSelect').value;
+
+            const selected = allTests.filter(t => t.checkbox && t.checkbox.checked);
+            countBadge.innerText = selected.length;
+
+            if (selected.length === 0) {
+                container.classList.add('hidden');
+                container.innerHTML = '';
+                emptyNotice.classList.remove('hidden');
+                subtotalDisplay.innerText = '₹ 0.00';
+            } else {
+                emptyNotice.classList.add('hidden');
+                container.classList.remove('hidden');
+                let html = '';
+                let total = 0;
+                selected.forEach(t => {
+                    let price = t.retail;
+                    if (src === 'B2B') price = t.b2b;
+                    else if (src === 'COLLECTION_CENTRE') price = t.cc;
+                    total += price;
+
+                    html += `
+                        <div class="flex items-center justify-between p-2.5 bg-white rounded-xl border border-slate-200 shadow-xs">
+                            <div class="flex items-center space-x-2.5">
+                                <span class="text-base">${t.vialEmoji}</span>
+                                <div>
+                                    <span class="text-xs font-bold text-slate-800">${t.name}</span>
+                                    <span class="text-[10px] text-slate-500 ml-1.5 font-medium px-1.5 py-0.5 bg-slate-100 rounded">${t.dept}</span>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-3">
+                                <span class="text-xs font-mono font-bold text-slate-900">₹ ${price.toFixed(2)}</span>
+                                <button type="button" onclick="removeSelectedTest('${t.id}')" title="Remove test" class="w-6 h-6 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100 flex items-center justify-center font-bold text-xs transition">
+                                    ✕
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+                container.innerHTML = html;
+                subtotalDisplay.innerText = '₹ ' + total.toFixed(2);
+            }
+        }
+
+        // Dismiss dropdown on outside click
+        document.addEventListener('click', function(e) {
+            const dropdown = document.getElementById('testDropdown');
+            const searchInput = document.getElementById('testSearchInput');
+            if (dropdown && !dropdown.contains(e.target) && e.target !== searchInput) {
+                dropdown.classList.add('hidden');
+            }
+        });
+
+        // Source Channel & Rate Card Updates
         function onSourceChange() {
             const src = document.getElementById('sourceSelect').value;
             const centreInput = document.getElementById('centreCodeInput');
@@ -443,13 +793,20 @@
                 centreInput.value = 'CC-01';
             }
 
-            // Update visible price labels based on Rate Card
+            // Update visible price labels based on Rate Card in Grid
             document.querySelectorAll('.test-card').forEach(card => {
                 let price = card.getAttribute('data-retail');
                 if (src === 'B2B') price = card.getAttribute('data-b2b');
                 else if (src === 'COLLECTION_CENTRE') price = card.getAttribute('data-cc');
                 card.querySelector('.test-price-display').innerText = '₹ ' + parseFloat(price).toFixed(2);
             });
+
+            // Re-render search dropdown if open
+            const query = document.getElementById('testSearchInput').value;
+            if (query.trim().length > 0) {
+                onTestSearchInput(query);
+            }
+
             calculateTotal();
         }
 
@@ -472,7 +829,7 @@
             const discount = parseFloat(document.getElementById('discountInput').value) || 0;
             const net = Math.max(0, subtotal - discount);
             
-            // Default amount paid to net if zero
+            // Default amount paid to net if zero or untouched
             const paidInput = document.getElementById('paidAmountInput');
             if (parseFloat(paidInput.value) === 0 || paidInput.dataset.touched !== 'true') {
                 paidInput.value = net.toFixed(2);
@@ -483,6 +840,8 @@
             document.getElementById('subtotalDisplay').value = '₹ ' + subtotal.toFixed(2);
             document.getElementById('netAmountDisplay').value = '₹ ' + net.toFixed(2);
             document.getElementById('dueDisplay').value = '₹ ' + due.toFixed(2);
+
+            updateSelectedTestsView();
         }
 
         document.getElementById('paidAmountInput').addEventListener('input', function() {
