@@ -20,7 +20,10 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Controller
@@ -44,7 +47,13 @@ public class CollectionController {
         List<LabSample> recentlyCollected = collectionService.getRecentlyCollectedSamples();
         List<LabSample> recollectionAlerts = collectionService.getRecollectionAlerts();
 
+        // Group pending samples by LabOrder so each patient appears as a single master row
+        Map<LabOrder, List<LabSample>> pendingOrdersMap = pendingSamples.stream()
+                .collect(Collectors.groupingBy(LabSample::getOrder, LinkedHashMap::new, Collectors.toList()));
+
         model.addAttribute("pendingSamples", pendingSamples);
+        model.addAttribute("pendingOrdersMap", pendingOrdersMap);
+        model.addAttribute("pendingOrders", new ArrayList<>(pendingOrdersMap.keySet()));
         model.addAttribute("recentlyCollected", recentlyCollected);
         model.addAttribute("recollectionAlerts", recollectionAlerts);
         model.addAttribute("departments", Department.values());

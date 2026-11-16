@@ -195,8 +195,15 @@
                                     </span>
                                 </td>
                                 <td class="py-3 px-4 text-right space-x-1 whitespace-nowrap">
+                                    <button type="button" 
+                                            th:attr="data-patient=${ord.patient.fullName}, data-order=${ord.orderNumber}, data-uhid=${ord.patient.uhid}, data-token=${ord.dailyTokenNumber}, data-bookedby=${ord.bookedBy}, data-bookedtime=${#temporals.format(ord.orderTime, 'dd-MMM-yyyy, hh:mm a')}, data-samples=${ord.samples.size()}, data-verifiedby=${ord.verifiedBy}, data-verifiedtime=${#temporals.format(ord.verifiedAt, 'dd-MMM-yyyy, hh:mm a')}, data-status=${ord.status.displayName}"
+                                            onclick="openCustodyModal(this)"
+                                            class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[11px] font-medium transition inline-flex items-center space-x-1">
+                                        <i data-lucide="shield-check" class="w-3 h-3 text-teal-600"></i>
+                                        <span>Audit</span>
+                                    </button>
                                     <a th:href="@{/patients/{id}(id=${ord.patient.id})}"
-                                       class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[11px] font-medium transition inline-block">
+                                       class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[11px] font-medium transition inline-block">
                                         Profile
                                     </a>
                                     <!-- Mark Dispatched Action (Req #17) -->
@@ -204,7 +211,7 @@
                                           th:action="@{/reception/orders/{id}/dispatch(id=${ord.id})}" method="post" class="inline">
                                         <button type="submit"
                                                 onclick="return confirm('Confirm report dispatch/handover to patient?')"
-                                                class="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg text-[11px] font-medium transition">
+                                                class="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg text-[11px] font-semibold transition">
                                             Dispatch
                                         </button>
                                     </form>
@@ -215,7 +222,72 @@
                 </div>
             </div>
 
-            <!-- Client Filter Script -->
+            <!-- Chain of Custody & User Control Modal (VinMedilab Image 7 Style) -->
+            <div id="custodyAuditModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 hidden no-print">
+                <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-lg w-full p-6 animate-in fade-in duration-150">
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                        <div class="flex items-center space-x-2.5">
+                            <div class="p-2 bg-teal-50 text-clinical-700 rounded-xl">
+                                <i data-lucide="shield-check" class="w-5 h-5"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-sm font-bold text-slate-900">User Control &amp; Chain of Custody</h3>
+                                <p class="text-[11px] text-slate-400" id="auditModalSubtitle">Order Audit Trail</p>
+                            </div>
+                        </div>
+                        <button type="button" onclick="closeCustodyModal()" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-500 font-bold">✕</button>
+                    </div>
+
+                    <div class="py-4 space-y-3.5 text-xs">
+                        <!-- Step 1: Registration -->
+                        <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                            <div class="flex justify-between items-center">
+                                <span class="font-bold text-slate-900 flex items-center">
+                                    <i data-lucide="user-check" class="w-4 h-4 mr-1.5 text-clinical-600"></i> 1. Patient Registration &amp; Billing
+                                </span>
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700">COMPLETED</span>
+                            </div>
+                            <div class="text-slate-600 mt-1">Booked by: <b id="auditBookedBy" class="text-slate-800">Staff</b> &bull; <span id="auditBookedTime" class="text-slate-400 font-mono">Time</span></div>
+                        </div>
+
+                        <!-- Step 2: Phlebotomy -->
+                        <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                            <div class="flex justify-between items-center">
+                                <span class="font-bold text-slate-900 flex items-center">
+                                    <i data-lucide="syringe" class="w-4 h-4 mr-1.5 text-clinical-600"></i> 2. Phlebotomy &amp; Vial Drawing
+                                </span>
+                                <span id="auditSampleBadge" class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-700">IN PROGRESS</span>
+                            </div>
+                            <div class="text-slate-600 mt-1">Total Assigned Vials: <b id="auditSampleCount" class="text-slate-800">1</b> sample tube(s)</div>
+                        </div>
+
+                        <!-- Step 3: Medical Signoff -->
+                        <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                            <div class="flex justify-between items-center">
+                                <span class="font-bold text-slate-900 flex items-center">
+                                    <i data-lucide="file-check" class="w-4 h-4 mr-1.5 text-clinical-600"></i> 3. Doctor Verification &amp; Authorization
+                                </span>
+                                <span id="auditVerifyBadge" class="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-50 text-purple-700">PENDING</span>
+                            </div>
+                            <div class="text-slate-600 mt-1">Verified by: <b id="auditVerifiedBy" class="text-slate-800">Pending</b> &bull; <span id="auditVerifiedTime" class="text-slate-400 font-mono">-</span></div>
+                        </div>
+
+                        <!-- Step 4: Overall Lifecycle Status -->
+                        <div class="p-3 bg-teal-50/50 rounded-xl border border-teal-100 flex justify-between items-center">
+                            <span class="font-bold text-slate-800">Current Order Stage:</span>
+                            <span id="auditOverallStatus" class="font-bold text-clinical-800">Booked</span>
+                        </div>
+                    </div>
+
+                    <div class="pt-3 border-t border-slate-100 text-right">
+                        <button type="button" onclick="closeCustodyModal()" class="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-semibold hover:bg-black">
+                            Close Audit Window
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Client Filter & Audit Script -->
             <script>
                 function filterOrderTable() {
                     const input = document.getElementById('orderSearch').value.toLowerCase();
@@ -225,11 +297,33 @@
                         row.style.display = text.includes(input) ? '' : 'none';
                     });
                 }
-            </script>
-                    </table>
-                </div>
-            </div>
 
+                function openCustodyModal(btn) {
+                    const patient = btn.getAttribute('data-patient');
+                    const order = btn.getAttribute('data-order');
+                    const token = btn.getAttribute('data-token');
+                    const bookedBy = btn.getAttribute('data-bookedby');
+                    const bookedTime = btn.getAttribute('data-bookedtime');
+                    const samples = btn.getAttribute('data-samples');
+                    const verifiedBy = btn.getAttribute('data-verifiedby');
+                    const verifiedTime = btn.getAttribute('data-verifiedtime');
+                    const status = btn.getAttribute('data-status');
+
+                    document.getElementById('auditModalSubtitle').innerText = patient + ' • Token #' + token + ' • ' + order;
+                    document.getElementById('auditBookedBy').innerText = bookedBy || 'Reception Desk';
+                    document.getElementById('auditBookedTime').innerText = bookedTime || '-';
+                    document.getElementById('auditSampleCount').innerText = samples || '1';
+                    document.getElementById('auditVerifiedBy').innerText = verifiedBy || 'Pending Pathologist Review';
+                    document.getElementById('auditVerifiedTime').innerText = verifiedTime || 'Not yet signed';
+                    document.getElementById('auditOverallStatus').innerText = status || 'Processing';
+
+                    document.getElementById('custodyAuditModal').classList.remove('hidden');
+                }
+
+                function closeCustodyModal() {
+                    document.getElementById('custodyAuditModal').classList.add('hidden');
+                }
+            </script>
         </div>
     </div>
 </body>

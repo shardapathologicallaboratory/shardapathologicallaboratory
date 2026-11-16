@@ -50,95 +50,181 @@
                 </div>
             </div>
 
-            <!-- Pending Collection Queue Table -->
+            <!-- Patient Queue (Master: Single Row Per Patient) -->
             <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
-                    <h2 class="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center">
-                        <i data-lucide="test-tube-2" class="w-4 h-4 mr-2 text-clinical-600"></i> Pending Sample Vials to Collect
-                    </h2>
-                    <span class="text-xs text-slate-400 font-mono" th:text="'Pending Vials: ' + ${pendingSamples.size()}">Pending: 0</span>
+                <div class="px-6 py-4 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                    <div>
+                        <h2 class="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center">
+                            <i data-lucide="users" class="w-4 h-4 mr-2 text-clinical-600"></i> Patients Awaiting Collection (Queue)
+                        </h2>
+                        <p class="text-[11px] text-slate-400 mt-0.5">Click any patient to inspect required vials &amp; print barcodes &bull; One row per patient</p>
+                    </div>
+                    <span class="text-xs text-slate-500 font-mono bg-slate-100 px-2.5 py-1 rounded-lg"
+                          th:text="'Patients in Queue: ' + ${pendingOrders.size()} + ' (' + ${pendingSamples.size()} + ' total vials)'">
+                        Queue: 0
+                    </span>
                 </div>
 
                 <div class="overflow-x-auto">
                     <table class="w-full text-left border-collapse text-xs">
                         <thead>
                             <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider font-semibold">
-                                <th class="py-3 px-4">Sample ID</th>
-                                <th class="py-3 px-4">Recommended Vial</th>
+                                <th class="py-3 px-4">Token &amp; Order ID</th>
                                 <th class="py-3 px-4">Patient Profile</th>
                                 <th class="py-3 px-4">Channel / Centre</th>
-                                <th class="py-3 px-4">Assigned Department</th>
-                                <th class="py-3 px-4">Tests in this Vial</th>
-                                <th class="py-3 px-4">Confirm Vial &amp; Generate Barcode</th>
+                                <th class="py-3 px-4">Referring Doctor</th>
+                                <th class="py-3 px-4">Required Vials</th>
+                                <th class="py-3 px-4 text-right">Phlebotomy Action</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100 text-slate-700">
-                            <tr th:if="${pendingSamples.empty}">
-                                <td colspan="7" class="py-10 text-center text-slate-400 italic">
+                            <tr th:if="${pendingOrders.empty}">
+                                <td colspan="6" class="py-10 text-center text-slate-400 italic">
                                     <i data-lucide="check-circle" class="w-8 h-8 mx-auto mb-2 text-emerald-400"></i>
-                                    All sample vials have been successfully collected! No pending samples in queue.
+                                    All patient samples have been drawn &amp; collected! No pending patients in queue.
                                 </td>
                             </tr>
-                            <tr th:each="s : ${pendingSamples}" class="hover:bg-slate-50/70 transition">
+                            <tr th:each="ord, stat : ${pendingOrders}" 
+                                class="hover:bg-teal-50/40 transition cursor-pointer patient-row"
+                                th:attr="data-order-id=${ord.id}"
+                                onclick="selectPatientForCollection(this)">
                                 <td class="py-3 px-4">
-                                    <div class="font-mono font-bold text-sm text-slate-900" th:text="'#' + ${s.sampleSequenceId}">#1001</div>
-                                    <span class="text-[10px] text-slate-400 font-mono" th:text="${s.order.orderNumber}">ORD-26-00001</span>
-                                    <div class="text-[10px] text-slate-500">Token <span class="font-bold text-slate-800" th:text="'#' + ${s.order.dailyTokenNumber}">#1</span></div>
+                                    <div class="flex items-center space-x-1.5">
+                                        <span class="px-2 py-0.5 rounded-md font-bold text-xs bg-slate-900 text-white"
+                                              th:text="'#' + ${ord.dailyTokenNumber}">#1</span>
+                                        <span class="font-mono text-slate-600 font-semibold" th:text="${ord.orderNumber}">ORD-26-00001</span>
+                                    </div>
+                                    <div class="text-[10px] text-slate-400 mt-0.5" th:text="${#temporals.format(ord.orderTime, 'hh:mm a')}">10:30 AM</div>
                                 </td>
                                 <td class="py-3 px-4">
-                                    <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold border"
-                                          th:style="'background-color: ' + ${s.vialType.colorHex} + '15; color: ' + ${s.vialType.colorHex} + '; border-color: ' + ${s.vialType.colorHex} + '40;'">
-                                        <span class="mr-1.5" th:text="${s.vialType.emoji}">🟣</span>
-                                        <span th:text="${s.vialType.displayName}">EDTA</span>
-                                    </span>
-                                </td>
-                                <td class="py-3 px-4">
-                                    <div class="font-bold text-slate-900" th:text="${s.patient.fullName}">Patient Name</div>
-                                    <span class="text-[11px] text-slate-500" th:text="${s.patient.formattedAgeAndSex}">45 Yrs / Male</span>
-                                    <div class="text-[10px] font-mono text-slate-400" th:text="${s.patient.uhid}">PAT-26-00001</div>
+                                    <div class="font-bold text-slate-900" th:text="${ord.patient.fullName}">Patient Name</div>
+                                    <span class="text-[11px] text-slate-500" th:text="${ord.patient.formattedAgeAndSex}">45 Yrs / Male</span>
+                                    <div class="text-[10px] font-mono text-slate-400" th:text="${ord.patient.uhid}">PAT-26-00001</div>
                                 </td>
                                 <td class="py-3 px-4">
                                     <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold"
-                                          th:classappend="${s.order.source.name() == 'WALK_IN' ? 'bg-blue-50 text-blue-700 border border-blue-200' : (s.order.source.name() == 'B2B' ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' : 'bg-amber-50 text-amber-700 border border-amber-200')}"
-                                          th:text="${s.order.centreCode}">
+                                          th:classappend="${ord.source.name() == 'WALK_IN' ? 'bg-blue-50 text-blue-700 border border-blue-200' : (ord.source.name() == 'B2B' ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' : 'bg-amber-50 text-amber-700 border border-amber-200')}"
+                                          th:text="${ord.centreCode}">
                                         MAIN
                                     </span>
                                 </td>
                                 <td class="py-3 px-4">
-                                    <span class="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-700 border border-slate-200"
-                                          th:text="${s.department.displayName}">Dept</span>
+                                    <span class="font-medium text-slate-800" th:text="${ord.doctor.name}">Dr. Name</span>
                                 </td>
-                                <td class="py-3 px-4 max-w-xs">
+                                <td class="py-3 px-4">
                                     <div class="flex flex-wrap gap-1">
-                                        <span th:each="it : ${s.order.items}" th:if="${it.department == s.department}"
-                                              class="px-1.5 py-0.5 rounded text-[10px] bg-slate-100 text-slate-700 font-medium border border-slate-200"
-                                              th:text="${it.testName}">
-                                            Test
+                                        <span th:each="s : ${pendingOrdersMap.get(ord)}"
+                                              class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold border"
+                                              th:style="'background-color: ' + ${s.vialType.colorHex} + '15; color: ' + ${s.vialType.colorHex} + '; border-color: ' + ${s.vialType.colorHex} + '40;'">
+                                            <span class="mr-1" th:text="${s.vialType.emoji}">🟣</span>
+                                            <span th:text="${s.vialType.displayName}">EDTA</span>
                                         </span>
                                     </div>
                                 </td>
-                                <td class="py-3 px-4 whitespace-nowrap">
-                                    <form th:action="@{/collection/samples/{id}/select-vial-and-collect(id=${s.id})}" method="post" class="flex flex-wrap items-center gap-2">
-                                        <select name="vialType" class="text-xs font-semibold rounded-lg border border-slate-300 py-1.5 px-2 bg-white text-slate-800 shadow-sm focus:ring-2 focus:ring-clinical-500">
-                                            <option th:each="vt : ${vialTypes}"
-                                                    th:value="${vt.name()}"
-                                                    th:text="${vt.emoji + ' ' + vt.displayName}"
-                                                    th:selected="${vt == s.vialType}">
-                                                EDTA
-                                            </option>
-                                        </select>
-                                        <button type="submit"
-                                                class="px-3 py-1.5 bg-clinical-600 hover:bg-clinical-700 text-white rounded-lg text-xs font-bold transition inline-flex items-center space-x-1.5 shadow-sm">
-                                            <i data-lucide="barcode" class="w-3.5 h-3.5"></i>
-                                            <span>Draw &amp; Generate Barcode</span>
-                                        </button>
-                                    </form>
+                                <td class="py-3 px-4 text-right">
+                                    <button type="button" class="px-3 py-1.5 bg-clinical-50 hover:bg-clinical-100 text-clinical-700 rounded-lg text-xs font-bold transition inline-flex items-center space-x-1 border border-clinical-200">
+                                        <i data-lucide="syringe" class="w-3.5 h-3.5"></i>
+                                        <span>Select Patient ➔</span>
+                                    </button>
                                 </td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
             </div>
+
+            <!-- Detail Panel: Selected Patient's Required Vials & Barcode Generation -->
+            <div id="patientDetailSection" class="space-y-4">
+                <div th:each="ord, stat : ${pendingOrders}" 
+                     th:id="'detail-card-' + ${ord.id}"
+                     class="patient-detail-card bg-white rounded-2xl border-2 border-clinical-300 shadow-md p-6"
+                     th:classappend="${stat.index == 0 ? '' : 'hidden'}">
+                    
+                    <!-- Selected Patient Demographic Bar -->
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-4 border-b border-slate-100 gap-3">
+                        <div>
+                            <div class="flex items-center space-x-2">
+                                <span class="px-2.5 py-1 rounded-md font-bold text-xs bg-slate-900 text-white" th:text="'Token #' + ${ord.dailyTokenNumber}">Token #1</span>
+                                <h3 class="text-lg font-bold text-slate-900" th:text="${ord.patient.fullName}">Patient Name</h3>
+                                <span class="text-xs text-slate-500" th:text="'(' + ${ord.patient.formattedAgeAndSex} + ')'">(45 Y / M)</span>
+                                <span class="font-mono text-xs text-slate-400" th:text="'UHID: ' + ${ord.patient.uhid}">PAT-001</span>
+                            </div>
+                            <p class="text-xs text-slate-500 mt-1">
+                                Ref. Doctor: <b class="text-slate-800" th:text="${ord.doctor.name}">Dr. Vikash</b> &bull;
+                                Phone: <span class="font-mono text-slate-700" th:text="${ord.patient.phone}">9876543210</span> &bull;
+                                Centre: <span class="font-bold text-clinical-700" th:text="${ord.centreCode}">MAIN</span>
+                            </p>
+                        </div>
+
+                        <!-- All Vials Draw Action -->
+                        <form th:action="@{/collection/orders/{id}/collect-all(id=${ord.id})}" method="post">
+                            <button type="submit" 
+                                    class="px-4 py-2 bg-slate-900 hover:bg-black text-white rounded-xl text-xs font-bold transition flex items-center space-x-1.5 shadow-sm">
+                                <i data-lucide="check-check" class="w-4 h-4 text-teal-300"></i>
+                                <span>⚡ Draw &amp; Collect All Vials for This Patient</span>
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Required Vials Table (Fixed Standard Vials - No Random Change) -->
+                    <div class="mt-4">
+                        <h4 class="text-xs font-bold uppercase tracking-wider text-slate-600 mb-2 flex items-center">
+                            <i data-lucide="test-tube" class="w-3.5 h-3.5 mr-1.5 text-clinical-600"></i> Required Vials for Ordered Investigations
+                        </h4>
+                        <div class="space-y-2.5">
+                            <div th:each="s : ${pendingOrdersMap.get(ord)}" 
+                                 class="p-3.5 bg-slate-50 rounded-xl border border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                                <div class="flex items-center space-x-3">
+                                    <!-- Vial Tag -->
+                                    <div class="px-3 py-1.5 rounded-lg text-xs font-bold border flex items-center space-x-1.5"
+                                         th:style="'background-color: ' + ${s.vialType.colorHex} + '15; color: ' + ${s.vialType.colorHex} + '; border-color: ' + ${s.vialType.colorHex} + '40;'">
+                                        <span class="text-sm" th:text="${s.vialType.emoji}">🟣</span>
+                                        <span th:text="${s.vialType.displayName}">EDTA (Purple / Lavender)</span>
+                                    </div>
+                                    <div>
+                                        <div class="text-[11px] text-slate-500 font-medium">Assigned Department: <b class="text-slate-700" th:text="${s.department.displayName}">Hematology</b></div>
+                                        <div class="flex flex-wrap gap-1 mt-1">
+                                            <span class="text-[10px] text-slate-400 font-semibold mr-1">Tests:</span>
+                                            <span th:each="it : ${ord.items}" th:if="${it.department == s.department}"
+                                                  class="px-1.5 py-0.5 rounded text-[10px] bg-white text-slate-800 font-semibold border border-slate-200"
+                                                  th:text="${it.testName}">
+                                                CBC
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center space-x-2">
+                                    <span class="font-mono text-xs font-bold text-slate-500" th:text="'Sample #' + ${s.sampleSequenceId}">#1001</span>
+                                    <form th:action="@{/collection/samples/{id}/collect(id=${s.id})}" method="post">
+                                        <button type="submit"
+                                                class="px-3.5 py-1.5 bg-clinical-600 hover:bg-clinical-700 text-white rounded-lg text-xs font-bold transition inline-flex items-center space-x-1.5 shadow-sm">
+                                            <i data-lucide="printer" class="w-3.5 h-3.5"></i>
+                                            <span>Draw &amp; Print Barcode</span>
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Client Script to Switch Selected Patient Card -->
+            <script>
+                function selectPatientForCollection(row) {
+                    const orderId = row.getAttribute('data-order-id');
+                    document.querySelectorAll('.patient-row').forEach(r => r.classList.remove('bg-teal-50', 'border-l-4', 'border-clinical-600'));
+                    row.classList.add('bg-teal-50', 'border-l-4', 'border-clinical-600');
+
+                    document.querySelectorAll('.patient-detail-card').forEach(card => card.classList.add('hidden'));
+                    const selectedCard = document.getElementById('detail-card-' + orderId);
+                    if (selectedCard) {
+                        selectedCard.classList.remove('hidden');
+                        selectedCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    }
+                }
+            </script>
 
             <!-- Recently Collected & Barcoded Samples Table -->
             <div th:if="${recentlyCollected != null and !recentlyCollected.empty}" class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">

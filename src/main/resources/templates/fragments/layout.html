@@ -164,6 +164,13 @@
                     <span>Find Patients</span>
                 </a>
 
+                <button sec:authorize="isAuthenticated()" type="button" onclick="openQuickPatientModal()"
+                        class="px-2.5 py-1.5 rounded-lg text-clinical-700 bg-clinical-50 hover:bg-clinical-100 border border-clinical-200 flex items-center space-x-1.5 cursor-pointer">
+                    <i data-lucide="zap" class="w-3.5 h-3.5 text-clinical-600"></i>
+                    <span class="font-semibold">Quick Find</span>
+                    <kbd class="px-1.5 py-0.2 rounded bg-white text-[10px] font-mono font-bold text-clinical-800 shadow-xs border border-clinical-200">F3</kbd>
+                </button>
+
                 <a sec:authorize="hasAnyRole('ADMIN', 'RECEPTION')" href="/reception" 
                    class="px-3 py-1.5 rounded-lg text-slate-700 hover:bg-slate-100 flex items-center space-x-1.5">
                     <i data-lucide="clipboard-list" class="w-4 h-4 text-slate-500"></i>
@@ -236,6 +243,201 @@
             </div>
         </div>
     </footer>
+
+    <!-- VinMedilab Style: Floating Quick Patient Directory Modal [F3] -->
+    <div id="quickPatientModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 hidden no-print">
+        <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-4xl w-full max-h-[85vh] flex flex-col overflow-hidden animate-in fade-in duration-150">
+            <!-- Modal Header -->
+            <div class="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+                <div class="flex items-center space-x-2.5">
+                    <div class="p-2 bg-clinical-100 text-clinical-700 rounded-xl">
+                        <i data-lucide="users" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-bold text-slate-900 flex items-center space-x-2">
+                            <span>Quick Patient Directory</span>
+                            <span class="px-1.5 py-0.5 rounded bg-slate-200 text-slate-700 font-mono text-[10px] font-bold">F3</span>
+                        </h3>
+                        <p class="text-[11px] text-slate-400">Search patients by name, phone, token, or registration number</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <button type="button" onclick="setQuickDate('today')" class="px-2.5 py-1 bg-white border border-slate-200 text-[11px] font-semibold text-slate-700 rounded-lg hover:bg-slate-100">Today</button>
+                    <button type="button" onclick="setQuickDate('yesterday')" class="px-2.5 py-1 bg-white border border-slate-200 text-[11px] font-semibold text-slate-700 rounded-lg hover:bg-slate-100">Yesterday</button>
+                    <input type="date" id="quickModalDate" onchange="fetchQuickPatients()" class="text-[11px] border border-slate-200 rounded-lg px-2 py-1 bg-white text-slate-700">
+                    <button type="button" onclick="closeQuickPatientModal()" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center font-bold">✕</button>
+                </div>
+            </div>
+
+            <!-- Instant Search Input -->
+            <div class="p-3 border-b border-slate-100 bg-white">
+                <div class="relative">
+                    <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-2.5"></i>
+                    <input type="text" id="quickModalSearchInput" oninput="filterQuickPatients()"
+                           placeholder="Type patient name, phone number, token #, or UHID (auto-filters as you type)..."
+                           class="w-full pl-9 pr-4 py-2 text-xs rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-clinical-500 bg-slate-50">
+                </div>
+            </div>
+
+            <!-- Patients Table Body -->
+            <div class="overflow-y-auto flex-grow p-4">
+                <table class="w-full text-left border-collapse text-xs">
+                    <thead>
+                        <tr class="border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase bg-slate-50">
+                            <th class="py-2.5 px-3">Token &amp; Order</th>
+                            <th class="py-2.5 px-3">Patient Profile</th>
+                            <th class="py-2.5 px-3">Doctor</th>
+                            <th class="py-2.5 px-3">Centre</th>
+                            <th class="py-2.5 px-3">Billed / Due</th>
+                            <th class="py-2.5 px-3">Status</th>
+                            <th class="py-2.5 px-3 text-right">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="quickModalTableBody" class="divide-y divide-slate-100 text-slate-700">
+                        <tr>
+                            <td colspan="7" class="py-8 text-center text-slate-400">Loading patients...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="p-3 border-t border-slate-100 bg-slate-50 text-[11px] text-slate-400 flex justify-between items-center">
+                <span>Press <kbd class="px-1 py-0.5 rounded bg-white border border-slate-200 font-mono text-slate-700 font-bold">Esc</kbd> to close &bull; Showing <b id="quickPatientCount" class="text-slate-700">0</b> patients</span>
+                <a href="/patients/search" class="text-clinical-700 font-semibold hover:underline flex items-center space-x-1">
+                    <span>Open Advanced Search ➔</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Patient Modal & Global Shortcut Script -->
+    <script>
+        let cachedQuickPatients = [];
+
+        function openQuickPatientModal() {
+            const modal = document.getElementById('quickPatientModal');
+            if (modal) {
+                modal.classList.remove('hidden');
+                const dateInput = document.getElementById('quickModalDate');
+                if (dateInput && !dateInput.value) {
+                    const today = new Date().toISOString().split('T')[0];
+                    dateInput.value = today;
+                }
+                const searchInput = document.getElementById('quickModalSearchInput');
+                if (searchInput) {
+                    searchInput.value = '';
+                    searchInput.focus();
+                }
+                fetchQuickPatients();
+            }
+        }
+
+        function closeQuickPatientModal() {
+            const modal = document.getElementById('quickPatientModal');
+            if (modal) {
+                modal.classList.add('hidden');
+            }
+        }
+
+        function setQuickDate(type) {
+            const dateInput = document.getElementById('quickModalDate');
+            const d = new Date();
+            if (type === 'yesterday') {
+                d.setDate(d.getDate() - 1);
+            }
+            dateInput.value = d.toISOString().split('T')[0];
+            fetchQuickPatients();
+        }
+
+        function fetchQuickPatients() {
+            const dateVal = document.getElementById('quickModalDate').value;
+            const tbody = document.getElementById('quickModalTableBody');
+            tbody.innerHTML = '<tr><td colspan="7" class="py-6 text-center text-slate-400"><i data-lucide="loader" class="w-5 h-5 mx-auto mb-1 animate-spin text-clinical-600"></i> Loading patient list...</td></tr>';
+            if (window.lucide) lucide.createIcons();
+
+            fetch('/api/patients/quick-list?date=' + encodeURIComponent(dateVal))
+                .then(res => res.json())
+                .then(data => {
+                    cachedQuickPatients = data;
+                    renderQuickPatientRows(data);
+                })
+                .catch(err => {
+                    tbody.innerHTML = '<tr><td colspan="7" class="py-6 text-center text-rose-500">Failed to load patient directory.</td></tr>';
+                });
+        }
+
+        function filterQuickPatients() {
+            const query = document.getElementById('quickModalSearchInput').value.toLowerCase().trim();
+            if (!query) {
+                renderQuickPatientRows(cachedQuickPatients);
+                return;
+            }
+            const filtered = cachedQuickPatients.filter(p => {
+                return (p.patientName && p.patientName.toLowerCase().includes(query)) ||
+                       (p.patientPhone && p.patientPhone.includes(query)) ||
+                       (p.orderNumber && p.orderNumber.toLowerCase().includes(query)) ||
+                       (p.uhid && p.uhid.toLowerCase().includes(query)) ||
+                       (p.doctorName && p.doctorName.toLowerCase().includes(query)) ||
+                       (String(p.tokenNumber) === query);
+            });
+            renderQuickPatientRows(filtered);
+        }
+
+        function renderQuickPatientRows(list) {
+            const tbody = document.getElementById('quickModalTableBody');
+            const countEl = document.getElementById('quickPatientCount');
+            countEl.innerText = list.length;
+
+            if (list.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="py-8 text-center text-slate-400 italic">No patients found for this date.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = list.map(p => `
+                <tr class="hover:bg-slate-50 transition">
+                    <td class="py-2.5 px-3">
+                        <div class="flex items-center space-x-1.5">
+                            <span class="px-2 py-0.5 rounded font-bold text-xs bg-slate-900 text-white">#` + p.tokenNumber + `</span>
+                            <span class="font-mono text-slate-600 font-semibold">` + p.orderNumber + `</span>
+                        </div>
+                        <div class="text-[10px] text-slate-400">` + p.orderTime + `</div>
+                    </td>
+                    <td class="py-2.5 px-3">
+                        <a href="/patients/` + p.patientId + `" class="font-bold text-clinical-700 hover:underline block">` + p.patientName + `</a>
+                        <span class="text-[11px] text-slate-500">` + p.patientAgeSex + `</span>
+                        <div class="text-[10px] font-mono text-slate-400">` + p.uhid + ` &bull; ` + (p.patientPhone || '-') + `</div>
+                    </td>
+                    <td class="py-2.5 px-3 text-slate-800 font-medium">` + p.doctorName + `</td>
+                    <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700">` + p.centreCode + `</span></td>
+                    <td class="py-2.5 px-3 font-mono">
+                        <div>₹ ` + p.netAmount + `</div>
+                        ` + (p.dueAmount > 0 ? `<div class="text-rose-600 font-bold text-[10px]">Due: ₹ ` + p.dueAmount + `</div>` : `<div class="text-emerald-600 text-[10px]">Paid</div>`) + `
+                    </td>
+                    <td class="py-2.5 px-3">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ` + p.statusBadgeClass + `">` + p.status + `</span>
+                    </td>
+                    <td class="py-2.5 px-3 text-right">
+                        <a href="/patients/` + p.patientId + `" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[11px] font-semibold transition inline-block">
+                            Profile ➔
+                        </a>
+                    </td>
+                </tr>
+            `).join('');
+
+            if (window.lucide) lucide.createIcons();
+        }
+
+        // Global Keyboard Shortcut: F3 or Ctrl+K opens Quick Patient Modal; Esc closes it
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'F3' || (e.ctrlKey && (e.key === 'k' || e.key === 'K'))) {
+                e.preventDefault();
+                openQuickPatientModal();
+            } else if (e.key === 'Escape') {
+                closeQuickPatientModal();
+            }
+        });
+    </script>
 
     <!-- Initialize Lucide Icons -->
     <script>
