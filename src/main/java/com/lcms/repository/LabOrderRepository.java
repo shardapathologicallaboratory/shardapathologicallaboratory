@@ -28,6 +28,9 @@ public interface LabOrderRepository extends JpaRepository<LabOrder, Long> {
     @Query("SELECT MAX(o.dailyTokenNumber) FROM LabOrder o WHERE o.orderDate = :date")
     Integer findMaxTokenForDate(@Param("date") LocalDate date);
 
+    @Query("SELECT COALESCE(MAX(o.id), 0) FROM LabOrder o")
+    Long findMaxOrderId();
+
     @Query("SELECT DISTINCT o FROM LabOrder o " +
            "JOIN o.patient p " +
            "JOIN o.doctor d " +

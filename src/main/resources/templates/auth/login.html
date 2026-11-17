@@ -141,8 +141,8 @@
                 </form>
             </div>
 
-            <!-- Fast One-Click Test Accounts for Evaluation -->
-            <div class="mt-8 pt-5 border-t border-slate-100">
+            <!-- Fast One-Click Test Accounts for Evaluation (Dev Mode Only) -->
+            <div th:if="${@environment.acceptsProfiles(T(org.springframework.core.env.Profiles).of('dev'))}" class="mt-8 pt-5 border-t border-slate-100">
                 <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center">
                     <i data-lucide="sparkles" class="w-3.5 h-3.5 mr-1 text-amber-500"></i> Fast Evaluation Shortcuts:
                 </p>

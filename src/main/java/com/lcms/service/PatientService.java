@@ -2,6 +2,7 @@ package com.lcms.service;
 
 import com.lcms.model.Patient;
 import com.lcms.repository.PatientRepository;
+import jakarta.annotation.PostConstruct;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -9,14 +10,24 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicLong;
 
 @Service
 public class PatientService {
 
     private final PatientRepository patientRepository;
+    private final AtomicLong patientCounter = new AtomicLong(0L);
 
     public PatientService(PatientRepository patientRepository) {
         this.patientRepository = patientRepository;
+    }
+
+    @PostConstruct
+    public void initPatientCounter() {
+        Long maxId = patientRepository.findMaxPatientId();
+        if (maxId != null) {
+            patientCounter.set(maxId);
+        }
     }
 
     public List<Patient> search(String query) {
@@ -62,9 +73,9 @@ public class PatientService {
         return patientRepository.save(p);
     }
 
-    private synchronized String generateNextUhid() {
+    private String generateNextUhid() {
         int year = LocalDate.now().getYear() % 100;
-        long count = patientRepository.countTotalPatients() + 1;
-        return String.format("PAT-%02d-%05d", year, count);
+        long nextId = patientCounter.incrementAndGet();
+        return String.format("PAT-%02d-%05d", year, nextId);
     }
 }

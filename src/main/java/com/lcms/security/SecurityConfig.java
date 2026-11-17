@@ -1,5 +1,7 @@
 package com.lcms.security;
 
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -19,9 +21,11 @@ import org.springframework.security.web.header.writers.frameoptions.XFrameOption
 public class SecurityConfig {
 
     private final CustomUserDetailsService userDetailsService;
+    private final Environment environment;
 
-    public SecurityConfig(CustomUserDetailsService userDetailsService) {
+    public SecurityConfig(CustomUserDetailsService userDetailsService, Environment environment) {
         this.userDetailsService = userDetailsService;
+        this.environment = environment;
     }
 
     @Bean
@@ -44,19 +48,25 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        boolean isDev = environment.acceptsProfiles(Profiles.of("dev"));
+
         http
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/login", "/v/**", "/css/**", "/js/**", "/images/**", "/favicon.ico").permitAll()
-                .requestMatchers("/h2-console/**").permitAll()
-                .requestMatchers("/admin/**").hasRole("ADMIN")
-                .requestMatchers("/accountant/**").hasAnyRole("ADMIN", "ACCOUNTANT", "RECEPTION")
-                .requestMatchers("/reception/**").hasAnyRole("ADMIN", "RECEPTION", "ACCOUNTANT")
-                .requestMatchers("/collection/**").hasAnyRole("ADMIN", "COLLECTION")
-                .requestMatchers("/reporting/**").hasAnyRole("ADMIN", "REPORTING")
-                .requestMatchers("/technician/**").hasAnyRole("ADMIN", "TECHNICIAN")
-                .requestMatchers("/reports/**").authenticated()
-                .anyRequest().authenticated()
-            )
+            .authorizeHttpRequests(auth -> {
+                auth.requestMatchers("/login", "/v/**", "/css/**", "/js/**", "/images/**", "/favicon.ico").permitAll();
+                if (isDev) {
+                    auth.requestMatchers("/h2-console/**").hasRole("ADMIN");
+                } else {
+                    auth.requestMatchers("/h2-console/**").denyAll();
+                }
+                auth.requestMatchers("/admin/**").hasRole("ADMIN")
+                    .requestMatchers("/accountant/**").hasAnyRole("ADMIN", "ACCOUNTANT", "RECEPTION")
+                    .requestMatchers("/reception/**").hasAnyRole("ADMIN", "RECEPTION", "ACCOUNTANT")
+                    .requestMatchers("/collection/**").hasAnyRole("ADMIN", "COLLECTION")
+                    .requestMatchers("/reporting/**").hasAnyRole("ADMIN", "REPORTING")
+                    .requestMatchers("/technician/**").hasAnyRole("ADMIN", "TECHNICIAN", "REPORTING")
+                    .requestMatchers("/reports/**").authenticated()
+                    .anyRequest().authenticated();
+            })
             .formLogin(form -> form
                 .loginPage("/login")
                 .defaultSuccessUrl("/", true)
@@ -69,12 +79,14 @@ public class SecurityConfig {
                 .invalidateHttpSession(true)
                 .deleteCookies("JSESSIONID")
                 .permitAll()
-            )
-            // Allow H2 console frames in development
-            .csrf(csrf -> csrf.ignoringRequestMatchers("/h2-console/**"))
-            .headers(headers -> headers.addHeaderWriter(
-                new XFrameOptionsHeaderWriter(XFrameOptionsHeaderWriter.XFrameOptionsMode.SAMEORIGIN)
-            ));
+            );
+
+        if (isDev) {
+            http.csrf(csrf -> csrf.ignoringRequestMatchers("/h2-console/**"))
+                .headers(headers -> headers.addHeaderWriter(
+                    new XFrameOptionsHeaderWriter(XFrameOptionsHeaderWriter.XFrameOptionsMode.SAMEORIGIN)
+                ));
+        }
 
         http.authenticationProvider(authenticationProvider());
 

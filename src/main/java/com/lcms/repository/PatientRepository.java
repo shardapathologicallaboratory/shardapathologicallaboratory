@@ -22,4 +22,7 @@ public interface PatientRepository extends JpaRepository<Patient, Long> {
 
     @Query("SELECT COUNT(p) FROM Patient p")
     long countTotalPatients();
+
+    @Query("SELECT COALESCE(MAX(p.id), 0) FROM Patient p")
+    Long findMaxPatientId();
 }

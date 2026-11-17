@@ -75,7 +75,8 @@ public class ShiftService {
     public void recordPaymentToActiveShift(PaymentMode mode, BigDecimal amount) {
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) return;
 
-        shiftRepository.findTopByStatusOrderByStartTimeDesc("OPEN").ifPresent(shift -> {
+        shiftRepository.findTopByStatusOrderByStartTimeDesc("OPEN").ifPresent(openShift -> {
+            ShiftSession shift = shiftRepository.findByIdForUpdate(openShift.getId()).orElse(openShift);
             if (mode == PaymentMode.CASH) {
                 shift.setTotalCashBilled(shift.getTotalCashBilled().add(amount));
                 shift.setExpectedCashInDrawer(shift.getExpectedCashInDrawer().add(amount));
@@ -127,7 +128,8 @@ public class ShiftService {
             order.setDueAmount(BigDecimal.ZERO);
 
             // Deduct from shift expected cash
-            shiftRepository.findTopByStatusOrderByStartTimeDesc("OPEN").ifPresent(shift -> {
+            shiftRepository.findTopByStatusOrderByStartTimeDesc("OPEN").ifPresent(openShift -> {
+                ShiftSession shift = shiftRepository.findByIdForUpdate(openShift.getId()).orElse(openShift);
                 shift.setTotalRefunds(shift.getTotalRefunds().add(difference));
                 if (paymentMode == PaymentMode.CASH) {
                     shift.setExpectedCashInDrawer(shift.getExpectedCashInDrawer().subtract(difference));

@@ -384,6 +384,16 @@
             renderQuickPatientRows(filtered);
         }
 
+        function escapeHtml(str) {
+            if (str === null || str === undefined) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
         function renderQuickPatientRows(list) {
             const tbody = document.getElementById('quickModalTableBody');
             const countEl = document.getElementById('quickPatientCount');
@@ -394,36 +404,53 @@
                 return;
             }
 
-            tbody.innerHTML = list.map(p => `
+            tbody.innerHTML = list.map(p => {
+                const patientId = encodeURIComponent(p.patientId || '');
+                const patientName = escapeHtml(p.patientName);
+                const patientAgeSex = escapeHtml(p.patientAgeSex);
+                const uhid = escapeHtml(p.uhid);
+                const patientPhone = escapeHtml(p.patientPhone || '-');
+                const doctorName = escapeHtml(p.doctorName);
+                const centreCode = escapeHtml(p.centreCode);
+                const tokenNumber = escapeHtml(p.tokenNumber);
+                const orderNumber = escapeHtml(p.orderNumber);
+                const orderTime = escapeHtml(p.orderTime);
+                const netAmount = escapeHtml(p.netAmount);
+                const dueAmount = Number(p.dueAmount) || 0;
+                const statusBadgeClass = escapeHtml(p.statusBadgeClass);
+                const status = escapeHtml(p.status);
+
+                return `
                 <tr class="hover:bg-slate-50 transition">
                     <td class="py-2.5 px-3">
                         <div class="flex items-center space-x-1.5">
-                            <span class="px-2 py-0.5 rounded font-bold text-xs bg-slate-900 text-white">#` + p.tokenNumber + `</span>
-                            <span class="font-mono text-slate-600 font-semibold">` + p.orderNumber + `</span>
+                            <span class="px-2 py-0.5 rounded font-bold text-xs bg-slate-900 text-white">#` + tokenNumber + `</span>
+                            <span class="font-mono text-slate-600 font-semibold">` + orderNumber + `</span>
                         </div>
-                        <div class="text-[10px] text-slate-400">` + p.orderTime + `</div>
+                        <div class="text-[10px] text-slate-400">` + orderTime + `</div>
                     </td>
                     <td class="py-2.5 px-3">
-                        <a href="/patients/` + p.patientId + `" class="font-bold text-clinical-700 hover:underline block">` + p.patientName + `</a>
-                        <span class="text-[11px] text-slate-500">` + p.patientAgeSex + `</span>
-                        <div class="text-[10px] font-mono text-slate-400">` + p.uhid + ` &bull; ` + (p.patientPhone || '-') + `</div>
+                        <a href="/patients/` + patientId + `" class="font-bold text-clinical-700 hover:underline block">` + patientName + `</a>
+                        <span class="text-[11px] text-slate-500">` + patientAgeSex + `</span>
+                        <div class="text-[10px] font-mono text-slate-400">` + uhid + ` &bull; ` + patientPhone + `</div>
                     </td>
-                    <td class="py-2.5 px-3 text-slate-800 font-medium">` + p.doctorName + `</td>
-                    <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700">` + p.centreCode + `</span></td>
+                    <td class="py-2.5 px-3 text-slate-800 font-medium">` + doctorName + `</td>
+                    <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700">` + centreCode + `</span></td>
                     <td class="py-2.5 px-3 font-mono">
-                        <div>₹ ` + p.netAmount + `</div>
-                        ` + (p.dueAmount > 0 ? `<div class="text-rose-600 font-bold text-[10px]">Due: ₹ ` + p.dueAmount + `</div>` : `<div class="text-emerald-600 text-[10px]">Paid</div>`) + `
+                        <div>₹ ` + netAmount + `</div>
+                        ` + (dueAmount > 0 ? `<div class="text-rose-600 font-bold text-[10px]">Due: ₹ ` + dueAmount.toFixed(2) + `</div>` : `<div class="text-emerald-600 text-[10px]">Paid</div>`) + `
                     </td>
                     <td class="py-2.5 px-3">
-                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ` + p.statusBadgeClass + `">` + p.status + `</span>
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ` + statusBadgeClass + `">` + status + `</span>
                     </td>
                     <td class="py-2.5 px-3 text-right">
-                        <a href="/patients/` + p.patientId + `" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[11px] font-semibold transition inline-block">
+                        <a href="/patients/` + patientId + `" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[11px] font-semibold transition inline-block">
                             Profile ➔
                         </a>
                     </td>
                 </tr>
-            `).join('');
+            `;
+            }).join('');
 
             if (window.lucide) lucide.createIcons();
         }

@@ -179,6 +179,7 @@
                     <p class="text-xs text-slate-500 mb-4">Resetting password for: <span id="resetUserLabel" class="font-bold text-slate-800"></span></p>
 
                     <form id="resetForm" method="post" class="space-y-3 text-xs">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
                         <div>
                             <label class="block font-semibold text-slate-700 uppercase tracking-wider mb-1">New Temporary Password</label>
                             <input type="password" name="newPassword" required minlength="6"

@@ -285,7 +285,9 @@
             </form>
 
             <!-- Pathologist Verification Post Form -->
-            <form id="verifyForm" th:action="@{/technician/worksheet/{id}/verify(id=${order.id})}" method="post" class="hidden"></form>
+            <form id="verifyForm" th:action="@{/technician/worksheet/{id}/verify(id=${order.id})}" method="post" class="hidden">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+            </form>
 
             <!-- Footnote / Clinical Comment Modal (Req #15 / Ctrl+T) -->
             <div id="commentModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">

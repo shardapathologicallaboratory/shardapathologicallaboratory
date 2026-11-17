@@ -4,6 +4,7 @@ import com.lcms.model.*;
 import com.lcms.model.enums.*;
 import com.lcms.repository.LabOrderRepository;
 import com.lcms.repository.LabSampleRepository;
+import jakarta.annotation.PostConstruct;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +24,7 @@ public class OrderService {
     private final ShiftService shiftService;
     private final AuditService auditService;
     private final AtomicLong sampleSequence = new AtomicLong(1000L);
+    private final AtomicLong orderSequence = new AtomicLong(0L);
 
     public OrderService(LabOrderRepository orderRepository, LabSampleRepository sampleRepository,
                         PatientService patientService, TestCatalogueService catalogueService,
@@ -33,6 +35,14 @@ public class OrderService {
         this.catalogueService = catalogueService;
         this.shiftService = shiftService;
         this.auditService = auditService;
+    }
+
+    @PostConstruct
+    public void initOrderSequence() {
+        Long maxOrderId = orderRepository.findMaxOrderId();
+        if (maxOrderId != null) {
+            orderSequence.set(maxOrderId);
+        }
     }
 
     public List<LabOrder> searchOrders(String query, LocalDate startDate, LocalDate endDate,
@@ -224,10 +234,10 @@ public class OrderService {
         return sampleSequence.incrementAndGet();
     }
 
-    private synchronized String generateOrderNumber(LocalDate date) {
+    private String generateOrderNumber(LocalDate date) {
         int year = date.getYear() % 100;
-        long totalOrders = orderRepository.count() + 1;
-        return String.format("ORD-%02d-%05d", year, totalOrders);
+        long nextOrder = orderSequence.incrementAndGet();
+        return String.format("ORD-%02d-%05d", year, nextOrder);
     }
 
     public record CustomTestRequest(String name, Department department, VialType vialType, BigDecimal price) {}
