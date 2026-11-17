@@ -196,7 +196,7 @@
                                 </td>
                                 <td class="py-3 px-4 text-right space-x-1 whitespace-nowrap">
                                     <button type="button" 
-                                            th:attr="data-patient=${ord.patient.fullName}, data-order=${ord.orderNumber}, data-uhid=${ord.patient.uhid}, data-token=${ord.dailyTokenNumber}, data-bookedby=${ord.bookedBy}, data-bookedtime=${#temporals.format(ord.orderTime, 'dd-MMM-yyyy, hh:mm a')}, data-samples=${ord.samples.size()}, data-verifiedby=${ord.verifiedBy}, data-verifiedtime=${#temporals.format(ord.verifiedAt, 'dd-MMM-yyyy, hh:mm a')}, data-status=${ord.status.displayName}"
+                                            th:attr="data-patient=${ord.patient.fullName}, data-order=${ord.orderNumber}, data-uhid=${ord.patient.uhid}, data-token=${ord.dailyTokenNumber}, data-bookedby=${ord.bookedBy}, data-bookedtime=${#temporals.format(ord.orderTime, 'dd-MMM-yyyy, hh:mm a')}, data-samples=${ord.samples.size()}, data-collected=${ord.sampleCollected}, data-collector=${ord.collectorName}, data-collectedtime=${ord.sampleCollectedAt != null ? #temporals.format(ord.sampleCollectedAt, 'dd-MMM-yyyy, hh:mm a') : ''}, data-statusname=${ord.status.name()}, data-statusdisplay=${ord.status.displayName}, data-verifiedby=${ord.verifiedBy}, data-verifiedtime=${ord.verifiedAt != null ? #temporals.format(ord.verifiedAt, 'dd-MMM-yyyy, hh:mm a') : ''}, data-dispatchedby=${ord.dispatchedBy}, data-dispatchedtime=${ord.dispatchedAt != null ? #temporals.format(ord.dispatchedAt, 'dd-MMM-yyyy, hh:mm a') : ''}, data-dispatchedto=${ord.dispatchedTo}"
                                             onclick="openCustodyModal(this)"
                                             class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[11px] font-medium transition inline-flex items-center space-x-1">
                                         <i data-lucide="shield-check" class="w-3 h-3 text-teal-600"></i>
@@ -238,16 +238,16 @@
                         <button type="button" onclick="closeCustodyModal()" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-500 font-bold">✕</button>
                     </div>
 
-                    <div class="py-4 space-y-3.5 text-xs">
+                    <div class="py-4 space-y-3 text-xs">
                         <!-- Step 1: Registration -->
                         <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
                             <div class="flex justify-between items-center">
                                 <span class="font-bold text-slate-900 flex items-center">
                                     <i data-lucide="user-check" class="w-4 h-4 mr-1.5 text-clinical-600"></i> 1. Patient Registration &amp; Billing
                                 </span>
-                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700">COMPLETED</span>
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">COMPLETED</span>
                             </div>
-                            <div class="text-slate-600 mt-1">Booked by: <b id="auditBookedBy" class="text-slate-800">Staff</b> &bull; <span id="auditBookedTime" class="text-slate-400 font-mono">Time</span></div>
+                            <div class="text-slate-600 mt-1">Booked by: <b id="auditBookedBy" class="text-slate-800">Staff</b> &bull; <span id="auditBookedTime" class="text-slate-400 font-mono">-</span></div>
                         </div>
 
                         <!-- Step 2: Phlebotomy -->
@@ -256,26 +256,48 @@
                                 <span class="font-bold text-slate-900 flex items-center">
                                     <i data-lucide="syringe" class="w-4 h-4 mr-1.5 text-clinical-600"></i> 2. Phlebotomy &amp; Vial Drawing
                                 </span>
-                                <span id="auditSampleBadge" class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-700">IN PROGRESS</span>
+                                <span id="auditSampleBadge" class="px-2 py-0.5 rounded text-[10px] font-bold border">STATUS</span>
                             </div>
-                            <div class="text-slate-600 mt-1">Total Assigned Vials: <b id="auditSampleCount" class="text-slate-800">1</b> sample tube(s)</div>
+                            <div id="auditSampleDetails" class="text-slate-600 mt-1">Sample info</div>
                         </div>
 
-                        <!-- Step 3: Medical Signoff -->
+                        <!-- Step 3: Bench Testing -->
                         <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
                             <div class="flex justify-between items-center">
                                 <span class="font-bold text-slate-900 flex items-center">
-                                    <i data-lucide="file-check" class="w-4 h-4 mr-1.5 text-clinical-600"></i> 3. Doctor Verification &amp; Authorization
+                                    <i data-lucide="flask-conical" class="w-4 h-4 mr-1.5 text-clinical-600"></i> 3. Laboratory Bench Testing
                                 </span>
-                                <span id="auditVerifyBadge" class="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-50 text-purple-700">PENDING</span>
+                                <span id="auditTestingBadge" class="px-2 py-0.5 rounded text-[10px] font-bold border">STATUS</span>
                             </div>
-                            <div class="text-slate-600 mt-1">Verified by: <b id="auditVerifiedBy" class="text-slate-800">Pending</b> &bull; <span id="auditVerifiedTime" class="text-slate-400 font-mono">-</span></div>
+                            <div id="auditTestingDetails" class="text-slate-600 mt-1">Testing info</div>
                         </div>
 
-                        <!-- Step 4: Overall Lifecycle Status -->
-                        <div class="p-3 bg-teal-50/50 rounded-xl border border-teal-100 flex justify-between items-center">
+                        <!-- Step 4: Medical Signoff -->
+                        <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                            <div class="flex justify-between items-center">
+                                <span class="font-bold text-slate-900 flex items-center">
+                                    <i data-lucide="file-check" class="w-4 h-4 mr-1.5 text-clinical-600"></i> 4. Doctor Verification &amp; Authorization
+                                </span>
+                                <span id="auditVerifyBadge" class="px-2 py-0.5 rounded text-[10px] font-bold border">STATUS</span>
+                            </div>
+                            <div id="auditVerifyDetails" class="text-slate-600 mt-1">Verification info</div>
+                        </div>
+
+                        <!-- Step 5: Report Delivery / Dispatch -->
+                        <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                            <div class="flex justify-between items-center">
+                                <span class="font-bold text-slate-900 flex items-center">
+                                    <i data-lucide="package-check" class="w-4 h-4 mr-1.5 text-clinical-600"></i> 5. Report Dispatch &amp; Patient Handover
+                                </span>
+                                <span id="auditDispatchBadge" class="px-2 py-0.5 rounded text-[10px] font-bold border">STATUS</span>
+                            </div>
+                            <div id="auditDispatchDetails" class="text-slate-600 mt-1">Dispatch info</div>
+                        </div>
+
+                        <!-- Lifecycle Summary Banner -->
+                        <div class="p-3 bg-teal-50/60 rounded-xl border border-teal-200 flex justify-between items-center">
                             <span class="font-bold text-slate-800">Current Order Stage:</span>
-                            <span id="auditOverallStatus" class="font-bold text-clinical-800">Booked</span>
+                            <span id="auditOverallStatus" class="font-bold px-2.5 py-1 rounded-full text-xs">Stage</span>
                         </div>
                     </div>
 
@@ -299,25 +321,110 @@
                 }
 
                 function openCustodyModal(btn) {
-                    const patient = btn.getAttribute('data-patient');
-                    const order = btn.getAttribute('data-order');
-                    const token = btn.getAttribute('data-token');
-                    const bookedBy = btn.getAttribute('data-bookedby');
-                    const bookedTime = btn.getAttribute('data-bookedtime');
-                    const samples = btn.getAttribute('data-samples');
-                    const verifiedBy = btn.getAttribute('data-verifiedby');
-                    const verifiedTime = btn.getAttribute('data-verifiedtime');
-                    const status = btn.getAttribute('data-status');
+                    const patient = btn.getAttribute('data-patient') || '';
+                    const order = btn.getAttribute('data-order') || '';
+                    const token = btn.getAttribute('data-token') || '1';
+                    const bookedBy = btn.getAttribute('data-bookedby') || 'Reception Desk';
+                    const bookedTime = btn.getAttribute('data-bookedtime') || '-';
+                    const samples = btn.getAttribute('data-samples') || '1';
+                    const isCollected = btn.getAttribute('data-collected') === 'true';
+                    const collector = btn.getAttribute('data-collector');
+                    const collectedTime = btn.getAttribute('data-collectedtime');
+                    const statusName = btn.getAttribute('data-statusname') || 'BOOKED';
+                    const statusDisplay = btn.getAttribute('data-statusdisplay') || 'Order Booked';
+                    const verifiedBy = btn.getAttribute('data-verifiedby') || '';
+                    const verifiedTime = btn.getAttribute('data-verifiedtime') || '';
+                    const dispatchedBy = btn.getAttribute('data-dispatchedby') || '';
+                    const dispatchedTime = btn.getAttribute('data-dispatchedtime') || '';
+                    const dispatchedTo = btn.getAttribute('data-dispatchedto') || '';
 
+                    // Header subtitle
                     document.getElementById('auditModalSubtitle').innerText = patient + ' • Token #' + token + ' • ' + order;
-                    document.getElementById('auditBookedBy').innerText = bookedBy || 'Reception Desk';
-                    document.getElementById('auditBookedTime').innerText = bookedTime || '-';
-                    document.getElementById('auditSampleCount').innerText = samples || '1';
-                    document.getElementById('auditVerifiedBy').innerText = verifiedBy || 'Pending Pathologist Review';
-                    document.getElementById('auditVerifiedTime').innerText = verifiedTime || 'Not yet signed';
-                    document.getElementById('auditOverallStatus').innerText = status || 'Processing';
+                    document.getElementById('auditBookedBy').innerText = bookedBy;
+                    document.getElementById('auditBookedTime').innerText = bookedTime;
+
+                    // 2. Phlebotomy Step
+                    const sampleBadge = document.getElementById('auditSampleBadge');
+                    const sampleDetails = document.getElementById('auditSampleDetails');
+                    if (isCollected || statusName === 'COLLECTED' || statusName === 'PROCESSING' || statusName === 'VERIFIED' || statusName === 'PRINTED' || statusName === 'DISPATCHED') {
+                        sampleBadge.className = 'px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200';
+                        sampleBadge.innerText = 'COLLECTED';
+                        sampleDetails.innerHTML = 'Drawn by: <b class="text-slate-800">' + (collector || 'Sonu (Phlebotomist)') + '</b> &bull; <span class="font-mono text-slate-400">' + (collectedTime || 'Collected') + '</span> (' + samples + ' vials)';
+                    } else {
+                        sampleBadge.className = 'px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200';
+                        sampleBadge.innerText = 'PENDING COLLECTION';
+                        sampleDetails.innerHTML = 'Waiting at phlebotomy chair &bull; Total assigned vials: <b class="text-slate-800">' + samples + '</b> sample tube(s)';
+                    }
+
+                    // 3. Laboratory Bench Testing
+                    const testingBadge = document.getElementById('auditTestingBadge');
+                    const testingDetails = document.getElementById('auditTestingDetails');
+                    if (statusName === 'VERIFIED' || statusName === 'PRINTED' || statusName === 'DISPATCHED') {
+                        testingBadge.className = 'px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200';
+                        testingBadge.innerText = 'TESTING COMPLETED';
+                        testingDetails.innerHTML = 'Machine run & parameter entry completed &bull; Results ready for review';
+                    } else if (statusName === 'PROCESSING') {
+                        testingBadge.className = 'px-2 py-0.5 rounded text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200';
+                        testingBadge.innerText = 'IN TESTING';
+                        testingDetails.innerHTML = 'Worksheet active &bull; Lab technician entering parameter values';
+                    } else if (isCollected || statusName === 'COLLECTED') {
+                        testingBadge.className = 'px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200';
+                        testingBadge.innerText = 'QUEUED FOR TESTING';
+                        testingDetails.innerHTML = 'Sample received in laboratory &bull; Waiting for bench analyzer';
+                    } else {
+                        testingBadge.className = 'px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200';
+                        testingBadge.innerText = 'AWAITING SAMPLE';
+                        testingDetails.innerHTML = 'Bench testing will begin once phlebotomist collects vials';
+                    }
+
+                    // 4. Doctor Verification & Authorization
+                    const verifyBadge = document.getElementById('auditVerifyBadge');
+                    const verifyDetails = document.getElementById('auditVerifyDetails');
+                    const isVerified = (statusName === 'VERIFIED' || statusName === 'PRINTED' || statusName === 'DISPATCHED') && verifiedBy && verifiedBy.trim().length > 0;
+                    if (isVerified) {
+                        verifyBadge.className = 'px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200';
+                        verifyBadge.innerText = 'VERIFIED & SIGNED';
+                        verifyDetails.innerHTML = 'Authorized by: <b class="text-slate-800">' + verifiedBy + '</b> &bull; <span class="font-mono text-slate-400">' + (verifiedTime || '-') + '</span>';
+                    } else {
+                        verifyBadge.className = 'px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200';
+                        verifyBadge.innerText = 'PENDING VERIFICATION';
+                        verifyDetails.innerHTML = '<span class="text-amber-700 font-medium">Pending Pathologist Review &bull; Report not yet signed off</span>';
+                    }
+
+                    // 5. Report Dispatch
+                    const dispatchBadge = document.getElementById('auditDispatchBadge');
+                    const dispatchDetails = document.getElementById('auditDispatchDetails');
+                    if (statusName === 'DISPATCHED') {
+                        dispatchBadge.className = 'px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200';
+                        dispatchBadge.innerText = 'DISPATCHED';
+                        dispatchDetails.innerHTML = 'Handed over to: <b class="text-slate-800">' + (dispatchedTo || 'Patient') + '</b> by ' + (dispatchedBy || 'Staff') + ' &bull; <span class="font-mono text-slate-400">' + (dispatchedTime || '-') + '</span>';
+                    } else if (statusName === 'PRINTED') {
+                        dispatchBadge.className = 'px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200';
+                        dispatchBadge.innerText = 'PRINTED';
+                        dispatchDetails.innerHTML = 'Physical report printed &bull; Ready at reception for patient pickup';
+                    } else if (isVerified) {
+                        dispatchBadge.className = 'px-2 py-0.5 rounded text-[10px] font-bold bg-teal-50 text-teal-700 border border-teal-200';
+                        dispatchBadge.innerText = 'READY FOR PRINTING';
+                        dispatchDetails.innerHTML = 'Report authorized &bull; Ready for printing or digital dispatch';
+                    } else {
+                        dispatchBadge.className = 'px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200';
+                        dispatchBadge.innerText = 'NOT READY';
+                        dispatchDetails.innerHTML = 'Awaiting laboratory completion and medical authorization';
+                    }
+
+                    // Overall Stage
+                    const overallEl = document.getElementById('auditOverallStatus');
+                    overallEl.innerText = statusDisplay || 'Order Booked';
+                    if (isVerified) {
+                        overallEl.className = 'font-bold px-2.5 py-1 rounded-full text-xs bg-teal-100 text-teal-800 border border-teal-200';
+                    } else if (statusName === 'COLLECTED' || statusName === 'PROCESSING') {
+                        overallEl.className = 'font-bold px-2.5 py-1 rounded-full text-xs bg-purple-100 text-purple-800 border border-purple-200';
+                    } else {
+                        overallEl.className = 'font-bold px-2.5 py-1 rounded-full text-xs bg-blue-100 text-blue-800 border border-blue-200';
+                    }
 
                     document.getElementById('custodyAuditModal').classList.remove('hidden');
+                    if (window.lucide) lucide.createIcons();
                 }
 
                 function closeCustodyModal() {

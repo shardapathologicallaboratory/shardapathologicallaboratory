@@ -428,4 +428,32 @@ public class LabOrder {
     public void setPathologistName(String pathologistName) {
         this.pathologistName = pathologistName;
     }
+
+    public boolean isSampleCollected() {
+        if (samples == null || samples.isEmpty()) return false;
+        return samples.stream().anyMatch(s -> s.getStatus() == com.lcms.model.enums.SampleStatus.COLLECTED);
+    }
+
+    public boolean isAllSamplesCollected() {
+        if (samples == null || samples.isEmpty()) return false;
+        return samples.stream().allMatch(s -> s.getStatus() == com.lcms.model.enums.SampleStatus.COLLECTED);
+    }
+
+    public String getCollectorName() {
+        if (samples == null) return null;
+        return samples.stream()
+                .filter(s -> s.getCollectedBy() != null && !s.getCollectedBy().isBlank())
+                .map(LabSample::getCollectedBy)
+                .findFirst()
+                .orElse(null);
+    }
+
+    public LocalDateTime getSampleCollectedAt() {
+        if (samples == null) return null;
+        return samples.stream()
+                .filter(s -> s.getCollectedAt() != null)
+                .map(LabSample::getCollectedAt)
+                .findFirst()
+                .orElse(null);
+    }
 }

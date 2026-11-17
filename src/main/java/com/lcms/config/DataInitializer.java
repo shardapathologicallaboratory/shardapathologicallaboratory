@@ -2,6 +2,7 @@ package com.lcms.config;
 
 import com.lcms.model.Doctor;
 import com.lcms.model.LabOrder;
+import com.lcms.model.LabSample;
 import com.lcms.model.Patient;
 import com.lcms.model.TestResult;
 import com.lcms.model.User;
@@ -10,6 +11,7 @@ import com.lcms.repository.DoctorRepository;
 import com.lcms.repository.TestResultRepository;
 import com.lcms.repository.UserRepository;
 import com.lcms.service.ClinicalWorksheetService;
+import com.lcms.service.CollectionService;
 import com.lcms.service.OrderService;
 import com.lcms.service.PatientService;
 import com.lcms.service.TestCatalogueService;
@@ -32,19 +34,22 @@ public class DataInitializer implements CommandLineRunner {
     private final PatientService patientService;
     private final TestCatalogueService catalogueService;
     private final OrderService orderService;
+    private final CollectionService collectionService;
     private final ClinicalWorksheetService worksheetService;
     private final TestResultRepository testResultRepository;
     private final PasswordEncoder passwordEncoder;
 
     public DataInitializer(UserRepository userRepository, DoctorRepository doctorRepository,
                            PatientService patientService, TestCatalogueService catalogueService,
-                           OrderService orderService, ClinicalWorksheetService worksheetService,
+                           OrderService orderService, CollectionService collectionService,
+                           ClinicalWorksheetService worksheetService,
                            TestResultRepository testResultRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.doctorRepository = doctorRepository;
         this.patientService = patientService;
         this.catalogueService = catalogueService;
         this.orderService = orderService;
+        this.collectionService = collectionService;
         this.worksheetService = worksheetService;
         this.testResultRepository = testResultRepository;
         this.passwordEncoder = passwordEncoder;
@@ -216,6 +221,11 @@ public class DataInitializer implements CommandLineRunner {
                     BigDecimal.ZERO, "", new BigDecimal("530.00"), PaymentMode.CASH, "",
                     "Sapna", "Fever x 4 days"
             );
+
+            // Mark vials as collected by Sonu so Phlebotomy step is fully valid
+            for (LabSample s : order1.getSamples()) {
+                collectionService.markSampleCollected(s.getId(), "Sonu (Phlebotomist)");
+            }
 
             // Populate sample verified results for CBC & Typhidot
             List<TestResult> results1 = worksheetService.getOrInitializeResults(order1);
